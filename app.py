@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, session
 import openai
 import os
 import pytesseract
@@ -24,6 +24,7 @@ client = openai.OpenAI(
 )
 
 app = Flask(__name__)
+app.secret_key = "clave_secreta_segura"  # Necesario para manejar sesiones
 
 # Expresiones regulares para capturar números en la tabla
 NUMERIC_PATTERN = r"\d+\.\d+|\d+"
@@ -80,15 +81,17 @@ def extraer_texto_desde_imagen(image_file):
         print(f"❌ Error procesando la imagen: {str(e)}")
         return None
 
-# 🔹 Ruta principal redirige a /chat
 @app.route("/")
 def index():
     return redirect(url_for("chat"))  # Redirige automáticamente al chat
 
 @app.route("/chat", methods=["GET", "POST"])
 def chat():
+    if "historial" not in session:
+        session["historial"] = []  # Iniciar historial si no existe
+
     if request.method == "GET":
-        return render_template("chat.html")
+        return render_template("chat.html", historial=session["historial"])
 
     user_input = request.form.get("message", "").strip()
     image_file = request.files.get("image")
@@ -108,42 +111,43 @@ def chat():
     full_prompt = f"{user_input}\n{extracted_text}".strip()
 
     if not full_prompt:
-        return render_template("chat.html", user_input="", bot_respuesta="Por favor, ingrese un mensaje o suba una imagen válida.")
+        return render_template("chat.html", historial=session["historial"], bot_respuesta="Por favor, ingrese un mensaje o suba una imagen válida.")
 
-    # Verificar si la pregunta es válida
-    if not es_pregunta_valida(full_prompt):
-        return render_template("chat.html", user_input=full_prompt, bot_respuesta="⚠️ Solo puedo ayudarte con análisis de sensibilidad en Programación Lineal.")
+    # Agregar contexto previo para mantener la conversación
+    mensajes_previos = [{"role": "system", "content": "Eres un experto en Programación Lineal y Análisis de Sensibilidad."}]
+    
+    for msg in session["historial"]:
+        mensajes_previos.append({"role": "user", "content": msg["user"]})
+        mensajes_previos.append({"role": "assistant", "content": msg["bot"]})
+
+    mensajes_previos.append({"role": "user", "content": full_prompt})
 
     try:
-        # Enviar la solicitud a OpenRouter con un enfoque en análisis de sensibilidad
+        # Enviar la solicitud a OpenRouter con el historial de conversación
         respuesta = client.chat.completions.create(
             model="openai/gpt-3.5-turbo",
             temperature=0.7,
             max_tokens=800,
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "Eres un experto en Programación Lineal y Análisis de Sensibilidad. "
-                        "Cuando recibas una imagen con resultados óptimos, valores de variables, "
-                        "holguras o costos reducidos, tu tarea es interpretar los datos y proporcionar "
-                        "un análisis detallado de cómo afectan a la solución óptima. "
-                        "Si algún coeficiente cambia, analiza cómo impacta en la solución. "
-                        "Indica qué pasaría si las restricciones aumentan o disminuyen, "
-                        "y cómo afectarían al resultado final del modelo.\n\n"
-                    )
-                },
-                {"role": "user", "content": full_prompt}
-            ]
+            messages=mensajes_previos
         )
 
-        bot_respuesta = respuesta.choices[0].message.content
+        # Verificar si la respuesta se generó correctamente
+        if not respuesta or not respuesta.choices or not respuesta.choices[0].message:
+            bot_respuesta = "⚠️ No se recibió respuesta del modelo. Intente de nuevo."
+            print("⚠️ Error: No se recibió respuesta del modelo.")
+        else:
+            bot_respuesta = respuesta.choices[0].message.content
+            print(f"🤖 Respuesta generada:\n{bot_respuesta}")
 
-        return render_template("chat.html", user_input=full_prompt, bot_respuesta=bot_respuesta)
+        # Guardar la conversación en el historial
+        session["historial"].append({"user": full_prompt, "bot": bot_respuesta})
+        session.modified = True  # Asegurar que Flask guarde los cambios
+
+        return render_template("chat.html", historial=session["historial"])
 
     except Exception as e:
-        return render_template("chat.html", user_input=full_prompt, bot_respuesta=f"❌ Error en la solicitud: {str(e)}")
-
+        print(f"❌ Error al procesar la solicitud: {str(e)}")
+        return render_template("chat.html", historial=session["historial"], bot_respuesta=f"❌ Error en la solicitud: {str(e)}")
 
 if __name__ == "__main__":
     app.run(debug=True)

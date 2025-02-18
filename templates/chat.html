@@ -18,10 +18,13 @@
             <h2 class="text-center text-primary"><i class="fas fa-robot"></i> Chatbot AI</h2>
             <p class="text-center text-muted">Ingrese su mensaje o suba una imagen para análisis de sensibilidad.</p>
 
-            {% if user_input %}
-                <div class="alert alert-info"><strong>Tú:</strong> {{ user_input }}</div>
-                <div class="alert alert-success"><strong>Bot:</strong> {{ bot_respuesta }}</div>
-            {% endif %}
+            <!-- Historial del chat -->
+            <div class="chat-history" style="max-height: 300px; overflow-y: auto;">
+                {% for mensaje in historial %}
+                    <div class="alert alert-info"><strong>Tú:</strong> {{ mensaje.user }}</div>
+                    <div class="alert alert-success"><strong>Bot:</strong> {{ mensaje.bot }}</div>
+                {% endfor %}
+            </div>
 
             <form action="{{ url_for('chat') }}" method="POST" enctype="multipart/form-data">
                 <div class="mb-3">
