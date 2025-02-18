@@ -11,7 +11,6 @@
 
     <div class="container mt-4">
         <div class="card chat-container p-4 shadow-lg">
-            <!-- Imagen del Chatbot -->
             <div class="text-center">
                 <img src="{{ url_for('static', filename='chatbot.jpeg') }}" alt="Chatbot" class="chatbot-img mb-3">
             </div>
@@ -19,14 +18,12 @@
             <h2 class="text-center text-primary"><i class="fas fa-robot"></i> Chatbot AI</h2>
             <p class="text-center text-muted">Ingrese su mensaje o suba una imagen para análisis de sensibilidad.</p>
 
-            <!-- Historial del chat -->
             {% if user_input %}
                 <div class="alert alert-info"><strong>Tú:</strong> {{ user_input }}</div>
                 <div class="alert alert-success"><strong>Bot:</strong> {{ bot_respuesta }}</div>
             {% endif %}
 
-            <!-- Formulario de entrada -->
-            <form method="post" enctype="multipart/form-data">
+            <form action="{{ url_for('chat') }}" method="POST" enctype="multipart/form-data">
                 <div class="mb-3">
                     <label for="message" class="form-label"><strong>Escribe tu mensaje:</strong></label>
                     <input type="text" id="message" name="message" class="form-control" placeholder="Escribe tu pregunta aquí...">
@@ -39,10 +36,6 @@
 
                 <button type="submit" class="btn btn-primary w-100"><i class="fas fa-paper-plane"></i> Enviar</button>
             </form>
-
-            <div class="text-center mt-3">
-                <a href="{{ url_for('home') }}" class="btn btn-outline-secondary"><i class="fas fa-home"></i> Volver al Inicio</a>
-            </div>
         </div>
     </div>
 
