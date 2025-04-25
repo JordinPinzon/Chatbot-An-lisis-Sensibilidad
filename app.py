@@ -95,7 +95,7 @@ def chat():
         return render_template("chat.html", historial=session["historial"], bot_respuesta="Por favor, ingrese un caso de estudio o suba una imagen válida.")
 
     if not es_pregunta_iso9001(user_input):
-        return render_template("chat.html", historial=session["historial"], bot_respuesta="Por favor, asegúrese de que el caso de estudio esté relacionado con auditorías de la norma ISO 9001.")
+       return render_template("chat.html", historial=session["historial"], bot_respuesta="Por favor, asegúrese de que el caso de estudio esté relacionado con auditorías de la norma ISO 9001.")
 
     mensajes_previos = [{"role": "system", "content": "Eres un experto en auditorías de la norma ISO 9001. Analiza el caso de estudio proporcionado y responde únicamente con base en esta norma, proporcionando información clara y precisa."}]
     
@@ -125,7 +125,7 @@ def chat():
 
         return render_template("chat.html", historial=session["historial"])
 
-    except openai.error.OpenAIError as e:
+    except openai.OpenAIError as e:
         print(f"❌ Error al procesar la solicitud: {str(e)}")
         return render_template("chat.html", historial=session["historial"], bot_respuesta="❌ Error al comunicarse con el modelo. Verifique su conexión o intente más tarde.")
 
