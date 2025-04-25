@@ -41,30 +41,48 @@ def es_pregunta_iso9001(texto):
 
 def extraer_texto_desde_imagen(image_file):
     try:
+        # Cargar y convertir la imagen a escala de grises
         image = Image.open(image_file)
         image = np.array(image)
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        _, thresh = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY_INV)
 
-        extracted_text = pytesseract.image_to_string(thresh)
-        extracted_text = re.sub(r"[^\w\s\.\,\-\:\;]", "", extracted_text)  # Limpiar caracteres raros
+        # Aplicar filtro bilateral para reducir ruido
+        gray = cv2.bilateralFilter(gray, 11, 17, 17)
 
-        texto_filtrado = []
-        for line in extracted_text.split("\n"):
-            if any(kw in line.lower() for kw in ISO_9001_KEYWORDS) or re.search(NUMERIC_PATTERN, line):
-                texto_filtrado.append(line.strip())
+        # Aplicar umbral adaptativo
+        thresh = cv2.adaptiveThreshold(
+            gray, 255,
+            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+            cv2.THRESH_BINARY,
+            11, 2
+        )
 
-        texto_final = "\n".join(texto_filtrado)
+        # Redimensionar la imagen
+        scale_percent = 150  # Aumentar tamaño en un 150%
+        width = int(thresh.shape[1] * scale_percent / 100)
+        height = int(thresh.shape[0] * scale_percent / 100)
+        dim = (width, height)
+        resized = cv2.resize(thresh, dim, interpolation=cv2.INTER_LINEAR)
 
-        if not texto_final.strip():
+        # Configurar parámetros de Tesseract
+        custom_config = r'--oem 3 --psm 6 -l spa'
+
+        # Extraer texto
+        extracted_text = pytesseract.image_to_string(resized, config=custom_config)
+
+        # Limpiar texto
+        extracted_text = re.sub(r"[^\w\s\.\,\-\:\;]", "", extracted_text)
+
+        if not extracted_text.strip():
             return None
 
-        print(f"📸 Texto extraído:\n{texto_final}")
-        return texto_final
+        print(f"📸 Texto extraído:\n{extracted_text}")
+        return extracted_text
 
     except Exception as e:
         print(f"❌ Error procesando la imagen: {str(e)}")
         return None
+
 
 @app.route("/")
 def index():
