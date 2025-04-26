@@ -1,0 +1,9 @@
+services:
+  chatbot_legislacion:
+    build: .
+    container_name: chatbot_legislacion
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    restart: unless-stopped
