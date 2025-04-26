@@ -28,8 +28,12 @@
             </div>
 
             <!-- Mostrar mensaje si hay respuesta directa (por errores o advertencias) -->
-            {% if bot_respuesta and not historial %}
+            {% if bot_respuesta %}
                 <div class="alert alert-warning mt-3"><strong>Bot:</strong> {{ bot_respuesta }}</div>
+                <!-- Aquí puedes incluir el formulario de comparación -->
+                {% if error_imagen %}
+                    <div class="alert alert-danger"><strong>Error:</strong> {{ error_imagen }}</div>
+                {% endif %}
             {% endif %}
 
             <form action="{{ url_for('chat') }}" method="POST" enctype="multipart/form-data">
@@ -51,6 +55,21 @@
 
                 <button type="submit" class="btn btn-primary w-100"><i class="fas fa-paper-plane"></i> Enviar</button>
             </form>
+
+            <!-- Comparar la respuesta del chatbot con el análisis del usuario -->
+            {% if bot_respuesta %}
+                <div class="mt-4">
+                    <h4>Comparar con tu propio análisis</h4>
+                    <form action="{{ url_for('compare') }}" method="POST">
+                        <input type="hidden" name="chatbot_response" value="{{ bot_respuesta }}">
+                        <div class="mb-3">
+                            <label for="user_analysis" class="form-label"><strong>Tu análisis:</strong></label>
+                            <textarea id="user_analysis" name="user_analysis" class="form-control" rows="6" placeholder="Escribe tu análisis aquí..." required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-secondary"><i class="fas fa-balance-scale"></i> Comparar respuestas</button>
+                    </form>
+                </div>
+            {% endif %}
         </div>
     </div>
 

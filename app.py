@@ -7,7 +7,7 @@ import numpy as np
 from PIL import Image
 from dotenv import load_dotenv
 import cv2
-
+import difflib
 # Cargar variables de entorno
 load_dotenv()
 
@@ -88,6 +88,27 @@ def extraer_texto_desde_imagen(image_file):
 def index():
     return redirect(url_for("chat"))
 
+@app.route("/compare", methods=["POST"])
+def compare():
+    chatbot_response = request.form.get("chatbot_response", "")
+    user_analysis = request.form.get("user_analysis", "")
+
+    # Generar la comparación utilizando difflib
+    differ = difflib.HtmlDiff()
+    diff_html = differ.make_table(
+        chatbot_response.splitlines(),
+        user_analysis.splitlines(),
+        fromdesc='Chatbot',
+        todesc='Tu Análisis',
+        context=True,
+        numlines=2
+    )
+
+    return render_template("compare.html",
+                           chatbot_response=chatbot_response,
+                           user_analysis=user_analysis,
+                           diff_html=diff_html)
+
 @app.route("/chat", methods=["GET", "POST"])
 def chat():
     if "historial" not in session:
@@ -141,7 +162,7 @@ def chat():
         session["historial"].append({"user": full_prompt, "bot": bot_respuesta})
         session.modified = True
 
-        return render_template("chat.html", historial=session["historial"])
+        return render_template("chat.html", historial=session["historial"], bot_respuesta=bot_respuesta)
 
     except openai.OpenAIError as e:
         print(f"❌ Error al procesar la solicitud: {str(e)}")
