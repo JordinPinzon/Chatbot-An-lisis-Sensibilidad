@@ -1,40 +1,29 @@
-## Chatbot de Auditoría ISO 9001
+# Chatbot de Auditoría ISO 9001
 
-# Este proyecto es un chatbot especializado en realizar auditorías de calidad basadas en la norma ISO 9001:2015. El sistema analiza casos de estudio enviados mediante texto o imagen y proporciona una respuesta automática siguiendo los requisitos de la norma.
+### Este proyecto es un chatbot especializado en realizar auditorías de calidad basadas en la norma ISO 9001:2015. El sistema analiza casos de estudio enviados mediante texto o imagen y proporciona una respuesta automática siguiendo los requisitos de la norma.
 
-El proyecto está dockerizado y se puede desplegar fácilmente usando Docker o Docker Compose.
+### El proyecto está dockerizado y se puede desplegar fácilmente usando Docker o Docker Compose.
 
-Tecnologías Utilizadas
+## Tecnologías Utilizadas
 
-Python 3.10
+- Python 3.10
 
-Flask
+- Flask
 
-OpenAI / OpenRouter API
+- OpenAI / OpenRouter API
 
-EasyOCR (extracción de texto de imágenes)
+- EasyOCR (extracción de texto de imágenes)
 
-Docker
+- Docker
 
-Docker Compose
+- Docker Compose
 
-Estructura del Proyecto
+- Estructura del Proyecto
 
-Chatbot_Legislacion/
-├── static/
-│   ├── chatbot.jpeg
-│   ├── style.css
-│   └── scripts.js
-├── templates/
-│   ├── chat.html
-│   └── compare.html
-├── app.py
-├── dockerfile
-├── docker-compose.yml
-├── requirements.txt
-└── .env
+![image](https://github.com/user-attachments/assets/8da631f8-1667-4236-9034-823f818f7c9d)
 
-Variables de Entorno
+
+## Variables de Entorno
 
 El archivo .env debe contener:
 
@@ -42,54 +31,50 @@ OPENROUTER_API_KEY="<tu_api_key_aqui>"
 FLASK_ENV=development
 FLASK_APP=app.py
 
-Instalación Manual
+## Instalación Manual
 
 Clonar el repositorio:
 
-git clone: https://github.com/JordinPinzon/Chatbot-Legislacion.git
-cd Chatbot_Legislacion
+- git clone: https://github.com/JordinPinzon/Chatbot-Legislacion.git
 
-Crear entorno virtual e instalar dependencias:
+- cd Chatbot_Legislacion
 
-python -m venv venv
-source venv/bin/activate  # En Windows: venv\Scripts\activate
-pip install -r requirements.txt
+- Crear entorno virtual e instalar dependencias:
 
-Ejecutar localmente:
+- python -m venv venv
+- source venv/bin/activate  # En Windows: venv\Scripts\activate
+- pip install -r requirements.txt
 
-flask run --host=0.0.0.0 --port=5000
+## Ejecutar localmente:
 
-Despliegue con Docker
+- python app.py --host=0.0.0.0 --port=5000
 
-Construir y correr la imagen:
+## Despliegue con Docker
 
-docker build -t chatbot-legislacion .
-docker run -p 5000:5000 --env-file .env chatbot-legislacion
+- Construir y correr la imagen:
 
-Despliegue con Docker Compose
+- docker build -t chatbot-legislacion .
+- docker run -p 5000:5000 --env-file .env chatbot-legislacion
 
-Ejecutar:
+## Despliegue con Docker Compose
 
-docker compose --env-file .env up --build
+- Ejecutar:
 
-Características Principales
+- docker compose --env-file .env up --build
 
-Análisis de texto escrito o extraído de imágenes.
+## Características Principales
 
-Comparación de respuestas con un análisis propio del usuario.
+- Análisis de texto escrito o extraído de imágenes.
 
-Resúmenes automáticos mediante IA.
+- Comparación de respuestas con un análisis propio del usuario.
 
-Prediseño web responsivo y moderno.
+- Resúmenes automáticos mediante IA.
 
-Totalmente portable mediante contenedores Docker.
+- Totalmente portable mediante contenedores Docker.
 
 Licencia
 
 Este proyecto se encuentra bajo la licencia MIT.
 
-Autor
-
-Desarrollado por: [Tu Nombre]GitHub: [Tu Perfil GitHub]
 
 ✨ ¡Gracias por utilizar el Chatbot de Auditoría ISO 9001! ✨
