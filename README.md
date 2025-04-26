@@ -1,4 +1,4 @@
-Chatbot de Auditoría ISO 9001
+**Chatbot de Auditoría ISO 9001
 
 Este proyecto es un chatbot especializado en realizar auditorías de calidad basadas en la norma ISO 9001:2015. El sistema analiza casos de estudio enviados mediante texto o imagen y proporciona una respuesta automática siguiendo los requisitos de la norma.
 
