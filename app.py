@@ -1,13 +1,13 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 import openai
 import os
-import pytesseract
 import re
 import numpy as np
 from PIL import Image
 from dotenv import load_dotenv
-import cv2
+import easyocr
 import difflib
+
 # Cargar variables de entorno
 load_dotenv()
 
@@ -26,10 +26,7 @@ client = openai.OpenAI(
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "clave_secreta_segura")  # Seguridad mejorada
 
-# Expresiones regulares para capturar números en la tabla
-NUMERIC_PATTERN = r"\d+\.\d+|\d+"
-
-# Palabras clave relacionadas exclusivamente con Programación Lineal
+# Palabras clave relacionadas con ISO 9001
 ISO_9001_KEYWORDS = [
     "auditoría", "ISO 9001", "calidad", "requisitos", "sistema de gestión",
     "mejora continua", "documentación", "procesos", "indicadores", "no conformidad"
@@ -41,48 +38,21 @@ def es_pregunta_iso9001(texto):
 
 def extraer_texto_desde_imagen(image_file):
     try:
-        # Cargar y convertir la imagen a escala de grises
-        image = Image.open(image_file)
-        image = np.array(image)
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        image = Image.open(image_file).convert("RGB")
+        image_array = np.array(image)
+        reader = easyocr.Reader(['es'], gpu=False)
+        resultados = reader.readtext(image_array, detail=0)
+        extracted_text = "\n".join(resultados).strip()
 
-        # Aplicar filtro bilateral para reducir ruido
-        gray = cv2.bilateralFilter(gray, 11, 17, 17)
-
-        # Aplicar umbral adaptativo
-        thresh = cv2.adaptiveThreshold(
-            gray, 255,
-            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-            cv2.THRESH_BINARY,
-            11, 2
-        )
-
-        # Redimensionar la imagen
-        scale_percent = 150  # Aumentar tamaño en un 150%
-        width = int(thresh.shape[1] * scale_percent / 100)
-        height = int(thresh.shape[0] * scale_percent / 100)
-        dim = (width, height)
-        resized = cv2.resize(thresh, dim, interpolation=cv2.INTER_LINEAR)
-
-        # Configurar parámetros de Tesseract
-        custom_config = r'--oem 3 --psm 6 -l spa'
-
-        # Extraer texto
-        extracted_text = pytesseract.image_to_string(resized, config=custom_config)
-
-        # Limpiar texto
-        extracted_text = re.sub(r"[^\w\s\.\,\-\:\;]", "", extracted_text)
-
-        if not extracted_text.strip():
+        if not extracted_text:
             return None
 
-        print(f"📸 Texto extraído:\n{extracted_text}")
+        print(f"📸 Texto extraído con EasyOCR:\n{extracted_text}")
         return extracted_text
 
     except Exception as e:
-        print(f"❌ Error procesando la imagen: {str(e)}")
+        print(f"❌ Error con EasyOCR: {str(e)}")
         return None
-
 
 @app.route("/")
 def index():
@@ -93,7 +63,6 @@ def compare():
     chatbot_response = request.form.get("chatbot_response", "")
     user_analysis = request.form.get("user_analysis", "")
 
-    # Generar la comparación utilizando difflib
     differ = difflib.HtmlDiff()
     diff_html = differ.make_table(
         chatbot_response.splitlines(),
@@ -104,10 +73,42 @@ def compare():
         numlines=2
     )
 
+    prompt = f"""
+    Actúa como un auditor experto en la norma ISO 9001.
+
+    A continuación se muestran dos análisis sobre un mismo caso de auditoría:
+
+    📘 Análisis del chatbot:
+    {chatbot_response}
+
+    🧑‍💼 Análisis del usuario:
+    {user_analysis}
+
+    Compara ambos. Evalúa si están alineados, si uno es más detallado o completo, si hay contradicciones, y redacta un párrafo resumen con tus observaciones.
+    """
+
+    try:
+        respuesta = client.chat.completions.create(
+            model="openai/gpt-3.5-turbo",
+            temperature=0.5,
+            max_tokens=300,
+            messages=[
+                {"role": "system", "content": "Eres un auditor experto en ISO 9001."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+
+        comparacion_ia = respuesta.choices[0].message.content if respuesta.choices else "No se pudo generar una comparación."
+
+    except Exception as e:
+        print(f"❌ Error al generar la comparación con IA: {str(e)}")
+        comparacion_ia = "⚠️ No se pudo generar la comparación inteligente en este momento."
+
     return render_template("compare.html",
                            chatbot_response=chatbot_response,
                            user_analysis=user_analysis,
-                           diff_html=diff_html)
+                           diff_html=diff_html,
+                           comparacion_ia=comparacion_ia)
 
 @app.route("/chat", methods=["GET", "POST"])
 def chat():
@@ -133,8 +134,8 @@ def chat():
     if not full_prompt:
         return render_template("chat.html", historial=session["historial"], bot_respuesta="Por favor, ingrese un caso de estudio o suba una imagen válida.")
 
-    if not es_pregunta_iso9001(user_input):
-       return render_template("chat.html", historial=session["historial"], bot_respuesta="Por favor, asegúrese de que el caso de estudio esté relacionado con auditorías de la norma ISO 9001.")
+    #if not es_pregunta_iso9001(full_prompt):
+     #   return render_template("chat.html", historial=session["historial"], bot_respuesta="Por favor, asegúrese de que el caso de estudio esté relacionado con auditorías de la norma ISO 9001.")
 
     mensajes_previos = [{"role": "system", "content": "Eres un experto en auditorías de la norma ISO 9001. Analiza el caso de estudio proporcionado y responde únicamente con base en esta norma, proporcionando información clara y precisa."}]
     
@@ -169,4 +170,4 @@ def chat():
         return render_template("chat.html", historial=session["historial"], bot_respuesta="❌ Error al comunicarse con el modelo. Verifique su conexión o intente más tarde.")
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, host="0.0.0.0")

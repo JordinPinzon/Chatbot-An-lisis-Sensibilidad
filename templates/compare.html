@@ -12,7 +12,7 @@
     <!-- Font Awesome -->
     <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 </head>
-<body class="d-flex align-items-center justify-content-center vh-100">
+<body style="background-color: #2e2e2e;">
 
     <div class="container mt-4">
         <div class="card chat-container p-4 shadow-lg">
@@ -35,13 +35,9 @@
                 </div>
             </div>
 
-            <hr class="text-secondary">
-
             <div class="mt-4">
-                <h4 class="text-light">Diferencias Destacadas:</h4>
-                <div class="table-responsive">
-                    {{ diff_html | safe }}
-                </div>
+                <h4 class="text-light">Resumen Comparativo del Auditor:</h4>
+                <div class="response-block">{{ comparacion_ia.replace('\n', '<br>') | safe }}</div>
             </div>
 
             <div class="text-center mt-4">
