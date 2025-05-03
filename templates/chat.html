@@ -23,7 +23,7 @@
             <div class="chat-history" style="max-height: 300px; overflow-y: auto;">
                 {% for mensaje in historial %}
                     <div class="alert alert-info"><strong>Tú:</strong> {{ mensaje.user }}</div>
-                    <div class="alert alert-success"><strong>Bot:</strong> {{ mensaje.bot }}</div>
+                    <div class="alert alert-success"><strong>Bot:</strong> {{ mensaje.bot.replace('\n', '<br>') | safe }}</div>
                 {% endfor %}
             </div>
 

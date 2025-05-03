@@ -163,8 +163,17 @@ def chat():
     #if not es_pregunta_iso9001(full_prompt):
      #   return render_template("chat.html", historial=session["historial"], bot_respuesta="Por favor, asegúrese de que el caso de estudio esté relacionado con auditorías de la norma ISO 9001.")
 
-    mensajes_previos = [{"role": "system", "content": "Eres un experto en auditorías de la norma ISO 9001. Analiza el caso de estudio proporcionado y responde únicamente con base en esta norma, proporcionando información clara y precisa."}]
-    
+    mensajes_previos = [{
+    "role": "system",
+    "content": (
+        "Eres un experto en auditorías de la norma ISO 9001. Analiza el caso de estudio proporcionado "
+        "y responde únicamente con base en esta norma. Tu respuesta debe incluir los hallazgos clave de forma estructurada "
+        "y enumerada (por ejemplo: 1. ..., 2. ..., etc.), usando saltos de línea para separar claramente cada punto. "
+        "No escribas todo en un solo párrafo."
+    )
+    }]
+
+         
     for msg in session["historial"]:
         mensajes_previos.append({"role": "user", "content": msg["user"]})
         mensajes_previos.append({"role": "assistant", "content": msg["bot"]})

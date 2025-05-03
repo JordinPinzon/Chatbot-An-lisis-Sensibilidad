@@ -1,30 +1,25 @@
 /* ===== Estilos Generales ===== */
 body {
-    font-family: Arial, sans-serif;
-    background-color: #2e2e2e !important; /* Fondo oscuro */
-    color: #f8fafc; /* Texto claro */
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #f8fafc;
+    color: #333;
     margin: 0;
     padding: 0;
     min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
 }
 
+/* ===== Contenedor Principal ===== */
 .container {
     margin-top: 50px;
 }
 
-/* ===== Contenedor Principal ===== */
-.card,
 .chat-container {
-    background: #1e293b; /* Azul oscuro */
+    background: #ffffff;
     padding: 30px;
-    border-radius: 10px;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
-    border: 1px solid #334155;
-    color: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+    color: #333;
     text-align: left;
 }
 
@@ -32,68 +27,56 @@ body {
 .chatbot-img {
     width: 100px;
     height: 100px;
-    object-fit: contain;
+    object-fit: cover;
     margin-bottom: 15px;
     border-radius: 50%;
 }
 
-/* ===== Título Principal ===== */
+/* ===== Títulos ===== */
 h2 {
-    color: #38bdf8; /* Azul claro */
-    font-size: 24px;
+    color: #2563eb;
+    font-size: 26px;
     font-weight: bold;
+    text-align: center;
 }
 
-/* ===== Mensajes del Chat ===== */
-.alert {
-    font-size: 16px;
-    word-wrap: break-word;
+h4, h5 {
+    color: #1e293b;
+}
+
+/* ===== Bloque de respuestas ===== */
+.response-block {
+    background: #f1f5f9;
     padding: 15px;
-    border-radius: 5px;
+    border-left: 5px solid #2563eb;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    white-space: pre-wrap;
+    line-height: 1.6;
 }
 
-.alert-info {
-    background: #0284c7; /* Azul fuerte */
-    color: white;
-    text-align: left;
-}
-
-.alert-success {
-    background: #16a34a; /* Verde */
-    color: white;
-    text-align: left;
-}
-
-.alert-warning {
-    background: #facc15; /* Amarillo */
-    color: black;
-}
-
-/* ===== Formulario ===== */
+/* ===== Formulario y campos ===== */
 .form-control {
-    background: #1e293b; /* Azul oscuro */
-    border: 1px solid #334155;
-    color: white;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #333;
     padding: 10px;
-    border-radius: 5px;
+    border-radius: 6px;
 }
 
 .form-control::placeholder {
     color: #94a3b8;
 }
 
-.text-muted {
-    color: white !important;
-}
-
 /* ===== Botones ===== */
 .btn-primary {
     background: #2563eb;
     border: none;
-    padding: 12px;
-    border-radius: 5px;
+    padding: 12px 24px;
+    border-radius: 6px;
     font-size: 16px;
-    font-weight: bold;
+    font-weight: 600;
+    color: #fff;
 }
 
 .btn-primary:hover {
@@ -103,10 +86,6 @@ h2 {
 .btn-secondary {
     background: #64748b;
     border: none;
-    padding: 12px;
-    border-radius: 5px;
-    font-size: 16px;
-    font-weight: bold;
     color: white;
 }
 
@@ -114,75 +93,49 @@ h2 {
     background: #475569;
 }
 
-.btn-outline-light {
-    border-color: #38bdf8;
-    color: #38bdf8;
-    padding: 10px;
-    border-radius: 5px;
-    font-size: 16px;
-    font-weight: bold;
-}
-
-.btn-outline-light:hover {
-    background: #38bdf8;
-    color: white;
-}
-
-/* ===== Tabla de Comparación (Difflib) ===== */
+/* ===== Tabla de comparación (DiffLib) ===== */
 table.diff {
     width: 100%;
     border-collapse: collapse;
-    background-color: #1e293b;
-    color: #ffffff;
-    border: 1px solid #334155;
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    color: #1e293b;
 }
 
 table.diff th,
 table.diff td {
-    padding: 8px;
-    border: 1px solid #334155;
+    padding: 10px;
+    border: 1px solid #e2e8f0;
+    font-size: 14px;
 }
 
 .diff_header {
-    background-color: #334155;
-    color: #ffffff;
+    background-color: #2563eb;
+    color: white;
     font-weight: bold;
 }
 
 .diff_add {
-    background-color: #16a34a;
-    color: #ffffff;
+    background-color: #c6f6d5;
 }
 
 .diff_sub {
-    background-color: #dc2626;
-    color: #ffffff;
+    background-color: #fed7d7;
 }
 
 .diff_chg {
-    background-color: #facc15;
-    color: #000000;
+    background-color: #fefcbf;
+    color: #1a202c;
 }
 
-.diff_next {
-    background-color: #1e293b;
-    color: #94a3b8;
-}
-
-/* ===== Ajuste de Altura Completa ===== */
+/* ===== Altura completa para centrar contenido ===== */
 .d-flex {
     display: flex;
     align-items: center;
     justify-content: center;
     min-height: 100vh;
 }
-
-.response-block {
-    background: #0f172a;
-    color: #f8fafc;
-    padding: 15px;
-    border-radius: 6px;
-    margin-bottom: 20px;
-    white-space: pre-wrap; /* Mantiene saltos de línea */
-    line-height: 1.6;
+h4.text-light {
+    color: #0f172a !important; /* Texto oscuro para buena visibilidad */
+    font-weight: bold;
 }
