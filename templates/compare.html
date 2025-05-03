@@ -40,6 +40,23 @@
                 <div class="response-block">{{ comparacion_ia.replace('\n', '<br>') | safe }}</div>
             </div>
 
+            <!-- Mostrar porcentaje de efectividad -->
+            <div class="mt-4 text-center">
+                <h5 class="text-success">📊 Porcentaje de efectividad del análisis:</h5>
+                <p class="display-6 text-white">{{ efectividad }}</p>
+            </div>
+
+            <!-- Botón para evaluar riesgo -->
+            <div class="text-center mt-3">
+                <form action="{{ url_for('evaluar_riesgo') }}" method="POST">
+                    <input type="hidden" name="impacto" value="4">
+                    <input type="hidden" name="probabilidad" value="3">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-exclamation-triangle"></i> Evaluar Riesgo
+                    </button>
+                </form>
+            </div>
+
             <div class="text-center mt-4">
                 <a href="{{ url_for('chat') }}" class="btn btn-primary">
                     <i class="fas fa-arrow-left"></i> Volver al Chat

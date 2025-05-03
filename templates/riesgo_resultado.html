@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Resultado de Evaluación de Riesgo</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body style="background-color: #2e2e2e;">
+    <div class="container mt-5">
+        <div class="card shadow p-4" style="background-color: #6c757d;">
+            <h2 class="text-center text-light mb-4">Resultado de Evaluación de Riesgo</h2>
+
+            <table class="table table-bordered table-striped bg-light text-center">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Parámetro</th>
+                        <th>Valor</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Impacto</strong></td>
+                        <td>{{ impacto }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Probabilidad</strong></td>
+                        <td>{{ probabilidad }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Riesgo Calculado</strong></td>
+                        <td>{{ riesgo }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Nivel de Riesgo</strong></td>
+                        <td class="{% if nivel == 'Alto' %}text-danger{% elif nivel == 'Medio' %}text-warning{% else %}text-success{% endif %}">
+                            <strong>{{ nivel }}</strong>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="text-center mt-3">
+                <a href="{{ url_for('chat') }}" class="btn btn-primary">Volver al Chat</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

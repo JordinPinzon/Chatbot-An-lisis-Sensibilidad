@@ -73,7 +73,7 @@ def compare():
         numlines=2
     )
 
-    prompt = f"""
+    prompt_comparacion = f"""
     Actúa como un auditor experto en la norma ISO 9001.
 
     A continuación se muestran dos análisis sobre un mismo caso de auditoría:
@@ -87,28 +87,54 @@ def compare():
     Compara ambos. Evalúa si están alineados, si uno es más detallado o completo, si hay contradicciones, y redacta un párrafo resumen con tus observaciones.
     """
 
+    prompt_porcentaje = f"""
+    Analiza el siguiente análisis de auditoría de un usuario comparado con la respuesta correcta del chatbot. En base a su alineación, detalle y precisión con respecto a la norma ISO 9001, proporciona un porcentaje estimado de efectividad del 0 al 100. Proporciona únicamente un número entero del 0 al 100 seguido del símbolo de porcentaje (%), sin ningún texto adicional ni explicación.
+
+
+    📘 Respuesta del chatbot:
+    {chatbot_response}
+
+    🧑‍💼 Análisis del usuario:
+    {user_analysis}
+    """
+
     try:
-        respuesta = client.chat.completions.create(
+        # Comparación textual
+        comparacion = client.chat.completions.create(
             model="openai/gpt-3.5-turbo",
             temperature=0.5,
             max_tokens=300,
             messages=[
                 {"role": "system", "content": "Eres un auditor experto en ISO 9001."},
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": prompt_comparacion}
             ]
         )
+        comparacion_ia = comparacion.choices[0].message.content if comparacion.choices else "No se pudo generar una comparación."
 
-        comparacion_ia = respuesta.choices[0].message.content if respuesta.choices else "No se pudo generar una comparación."
+        # Porcentaje de efectividad
+        porcentaje = client.chat.completions.create(
+            model="openai/gpt-3.5-turbo",
+            temperature=0,
+            max_tokens=10,
+            messages=[
+                {"role": "system", "content": "Eres un evaluador que responde solo con un número del 0 al 100."},
+                {"role": "user", "content": prompt_porcentaje}
+            ]
+        )
+        efectividad = porcentaje.choices[0].message.content.strip()
 
     except Exception as e:
-        print(f"❌ Error al generar la comparación con IA: {str(e)}")
-        comparacion_ia = "⚠️ No se pudo generar la comparación inteligente en este momento."
+        print(f"❌ Error en comparación o evaluación: {str(e)}")
+        comparacion_ia = "❌ No se pudo generar la comparación."
+        efectividad = "❌ No disponible"
 
     return render_template("compare.html",
                            chatbot_response=chatbot_response,
                            user_analysis=user_analysis,
                            diff_html=diff_html,
-                           comparacion_ia=comparacion_ia)
+                           comparacion_ia=comparacion_ia,
+                           efectividad=efectividad)
+
 
 @app.route("/chat", methods=["GET", "POST"])
 def chat():
@@ -168,6 +194,30 @@ def chat():
     except openai.OpenAIError as e:
         print(f"❌ Error al procesar la solicitud: {str(e)}")
         return render_template("chat.html", historial=session["historial"], bot_respuesta="❌ Error al comunicarse con el modelo. Verifique su conexión o intente más tarde.")
+
+@app.route("/evaluar_riesgo", methods=["POST"])
+def evaluar_riesgo():
+    try:
+        impacto = int(request.form.get("impacto", 0))
+        probabilidad = int(request.form.get("probabilidad", 0))
+        riesgo = impacto * probabilidad
+
+        if riesgo >= 12:
+            nivel = "Alto"
+        elif riesgo >= 6:
+            nivel = "Medio"
+        else:
+            nivel = "Bajo"
+
+        return render_template("riesgo_resultado.html",
+                               impacto=impacto,
+                               probabilidad=probabilidad,
+                               riesgo=riesgo,
+                               nivel=nivel)
+    except Exception as e:
+        print(f"❌ Error al calcular el riesgo: {str(e)}")
+        return "Error al evaluar riesgo"
+
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0")
