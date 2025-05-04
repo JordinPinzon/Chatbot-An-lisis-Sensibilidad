@@ -46,6 +46,37 @@
                 <p class="display-6 text-dark fw-bold">{{ efectividad }}</p>
             </div>
 
+            <!-- Mostrar análisis de riesgo en tabla -->
+            <div class="mt-5">
+                <h5 class="text-danger text-center"><i class="fas fa-exclamation-circle"></i> Análisis de Riesgo</h5>
+                <div class="table-responsive mt-3">
+                    <table class="table table-bordered text-center table-dark">
+                        <thead>
+                            <tr>
+                                <th>Impacto</th>
+                                <th>Probabilidad</th>
+                                <th>Nivel de Riesgo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>{{ impacto }}</td>
+                                <td>{{ probabilidad }}</td>
+                                <td>
+                                    {% if nivel == 'Alto' %}
+                                        <span class="badge bg-danger">Alto</span>
+                                    {% elif nivel == 'Medio' %}
+                                        <span class="badge bg-warning text-dark">Medio</span>
+                                    {% else %}
+                                        <span class="badge bg-success">Bajo</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- Botón para evaluar riesgo -->
             <div class="text-center mt-3">
                 <form action="{{ url_for('evaluar_riesgo') }}" method="POST">

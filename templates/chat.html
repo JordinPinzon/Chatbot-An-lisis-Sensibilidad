@@ -19,6 +19,16 @@
             <h2 class="text-center text-primary"><i class="fas fa-robot"></i> Chatbot ISO 9001</h2>
             <p class="text-center text-muted">Ingrese su pregunta o suba una imagen relacionada con auditorías ISO 9001.</p>
 
+            <!-- Botón destacado para pedir caso de estudio real -->
+            <div class="text-center my-3">
+                <form action="{{ url_for('chat') }}" method="POST">
+                    <input type="hidden" name="message" value="Dame un caso de estudio de una empresa real certificada con ISO 9001">
+                    <button type="submit" class="btn btn-outline-info btn-lg">
+                        <i class="fas fa-briefcase"></i> Caso de estudio real de empresa ISO 9001
+                    </button>
+                </form>
+            </div>
+
             <!-- Historial del chat -->
             <div class="chat-history" style="max-height: 300px; overflow-y: auto;">
                 {% for mensaje in historial %}
@@ -29,13 +39,13 @@
 
             <!-- Mostrar mensaje si hay respuesta directa (por errores o advertencias) -->
             {% if bot_respuesta %}
-                <div class="alert alert-warning mt-3"><strong>Bot:</strong> {{ bot_respuesta }}</div>
-                <!-- Aquí puedes incluir el formulario de comparación -->
+                <div class="alert alert-warning mt-3"><strong>Bot:</strong> {{ bot_respuesta.replace('\n', '<br>') | safe }}</div>
                 {% if error_imagen %}
                     <div class="alert alert-danger"><strong>Error:</strong> {{ error_imagen }}</div>
                 {% endif %}
             {% endif %}
 
+            <!-- Formulario principal -->
             <form action="{{ url_for('chat') }}" method="POST" enctype="multipart/form-data">
                 <div class="mb-3">
                     <label for="message" class="form-label"><strong>Escribe tu pregunta:</strong></label>
@@ -47,7 +57,7 @@
                     <input type="file" id="image" name="image" class="form-control" accept="image/*" onchange="previewImage(event)">
                 </div>
 
-                <!-- Vista previa de la imagen -->
+                <!-- Vista previa de imagen -->
                 <div id="image-preview" class="text-center mb-3" style="display: none;">
                     <p class="text-muted">Vista previa de la imagen:</p>
                     <img id="preview" src="#" alt="Vista previa" class="img-fluid rounded shadow" style="max-height: 200px;">
