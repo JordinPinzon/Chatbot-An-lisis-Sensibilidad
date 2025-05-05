@@ -92,9 +92,11 @@ def compare():
     """
 
     prompt_porcentaje = f"""
-    Analiza el siguiente análisis de auditoría de un usuario comparado con la respuesta correcta del chatbot. En base a su alineación, detalle y precisión con respecto a la norma ISO 9001, proporciona un porcentaje estimado de efectividad del 0 al 100. Proporciona únicamente un número entero del 0 al 100 seguido del símbolo de porcentaje (%), sin ningún texto adicional ni explicación.
-
-    📘 Respuesta del chatbot:
+    Eres un evaluador experto en auditorías ISO 9001. Compara la respuesta del usuario con la del chatbot. 
+    Evalúa cuán alineado está el análisis del usuario con respecto a la respuesta del chatbot en términos de exactitud, profundidad y cumplimiento de la norma.
+    Devuelve solo un porcentaje entero de efectividad del 0 al 100 seguido del símbolo %, sin explicación adicional.
+    
+    Respuesta del chatbot:
     {chatbot_response}
 
     🧑‍💼 Análisis del usuario:
