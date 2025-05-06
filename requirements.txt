@@ -1,9 +1,0 @@
-flask
-python-dotenv
-openai
-pillow
-easyocr
-torch
-torchvision
-torchaudio
-numpy
