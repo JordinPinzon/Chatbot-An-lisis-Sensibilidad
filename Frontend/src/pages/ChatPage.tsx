@@ -3,12 +3,22 @@ import axios from 'axios';
 
 interface ChatPageProps {
   setChatbotResponse: (text: string) => void;
+  historial: {
+    casoEstudio: string;
+    respuestaIA: string;
+    respuestaUsuario: string;
+  };
+  setHistorial: React.Dispatch<React.SetStateAction<{
+    casoEstudio: string;
+    respuestaIA: string;
+    respuestaUsuario: string;
+  }>>;
 }
 
-export default function ChatPage({ setChatbotResponse }: ChatPageProps) {
+export default function ChatPage({ setChatbotResponse, historial, setHistorial }: ChatPageProps) {
   const [message, setMessage] = useState('');
   const [response, setResponse] = useState('');
-  const [casoEstudio, setCasoEstudio] = useState('');
+  const [casoEstudio, setCasoEstudio] = useState(historial.casoEstudio || '');
   const [loading, setLoading] = useState(false);
 
   const paises = ['Ecuador', 'México', 'Colombia', 'Argentina', 'España'];
@@ -28,9 +38,14 @@ export default function ChatPage({ setChatbotResponse }: ChatPageProps) {
       const reply = res.data.respuesta || res.data.error;
       setResponse(reply);
       setChatbotResponse(reply);
+
+      setHistorial((prev) => ({
+        ...prev,
+        respuestaIA: reply,
+      }));
+
       setCasoEstudio('');
     } catch (error) {
-      console.error('Error enviando mensaje:', error);
       const errorMsg = '❌ Error al enviar la solicitud.';
       setResponse(errorMsg);
       setChatbotResponse(errorMsg);
@@ -65,8 +80,14 @@ export default function ChatPage({ setChatbotResponse }: ChatPageProps) {
       const analisisTexto = analisisRes.data.respuesta || analisisRes.data.error;
       setResponse(analisisTexto);
       setChatbotResponse(analisisTexto);
+
+      setHistorial((prev) => ({
+        ...prev,
+        casoEstudio: casoTexto,
+        respuestaIA: analisisTexto,
+      }));
+
     } catch (error) {
-      console.error('Error generando o analizando caso:', error);
       const errorMsg = '❌ Error al generar o analizar el caso de estudio.';
       setResponse(errorMsg);
       setChatbotResponse(errorMsg);
@@ -75,10 +96,9 @@ export default function ChatPage({ setChatbotResponse }: ChatPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-red-600 p-6">
-      <div className="text-center text-white text-3xl font-bold mb-6">
-        Chatbot ISO 9001
-      </div>
+    <div className="min-h-screen p-6" style={{ backgroundColor: '#EDE8D0' }}>
+      <div className="text-center text-black text-3xl font-bold mb-6">Chatbot ISO 9001</div>
+
 
       <div className="bg-white rounded-lg shadow-md p-6 mb-6 transition-all duration-300">
         <label className="block text-gray-700 font-semibold mb-2">Mensaje:</label>
@@ -142,7 +162,7 @@ export default function ChatPage({ setChatbotResponse }: ChatPageProps) {
         <button
           onClick={handleGenerateCase}
           disabled={loading}
-          className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-md transition-all duration-300"
+          className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-md transition duration-300"
         >
           {loading ? 'Generando...' : 'Generar caso de estudio'}
         </button>

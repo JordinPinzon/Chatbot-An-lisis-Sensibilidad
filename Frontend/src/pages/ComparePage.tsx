@@ -1,12 +1,37 @@
 import React, { useState, useEffect } from 'react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
 import axios from 'axios';
 
 interface ComparePageProps {
   chatbotResponse: string;
+  historial: {
+    casoEstudio: string;
+    respuestaIA: string;
+    respuestaUsuario: string;
+  };
+  setHistorial: React.Dispatch<
+    React.SetStateAction<{
+      casoEstudio: string;
+      respuestaIA: string;
+      respuestaUsuario: string;
+    }>
+  >;
 }
 
-export default function ComparePage({ chatbotResponse }: ComparePageProps) {
-  const [userAnalysis, setUserAnalysis] = useState('');
+export default function ComparePage({
+  chatbotResponse,
+  historial,
+  setHistorial,
+}: ComparePageProps) {
+  const [userAnalysis, setUserAnalysis] = useState(historial.respuestaUsuario || '');
   const [localChatbotResponse, setLocalChatbotResponse] = useState(chatbotResponse);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<null | {
@@ -31,10 +56,15 @@ export default function ComparePage({ chatbotResponse }: ComparePageProps) {
     try {
       const res = await axios.post('http://localhost:5000/compare', {
         chatbot_response: localChatbotResponse,
-        user_analysis: userAnalysis
+        user_analysis: userAnalysis,
       });
 
       setResult(res.data);
+
+      setHistorial((prev) => ({
+        ...prev,
+        respuestaUsuario: userAnalysis,
+      }));
     } catch (err) {
       console.error('❌ Error en comparación:', err);
       setError('Hubo un error al procesar la comparación.');
@@ -70,18 +100,16 @@ export default function ComparePage({ chatbotResponse }: ComparePageProps) {
   };
 
   return (
-    <div className="p-6 min-h-screen bg-blue-600">
-      <h1 className="text-3xl font-bold mb-6 text-center text-white">Comparación de los análisis</h1>
+    <div className="min-h-screen p-6" style={{ backgroundColor: '#EDE8D0' }}>
+
+<h1 className="text-3xl font-bold mb-6 text-center text-black">Comparación de los análisis</h1>
+
 
       <div className="bg-white rounded-lg shadow-md p-6 mb-6 transition-all duration-300">
         <label className="block text-gray-700 font-semibold mb-2">📘 Respuesta del Chatbot:</label>
-        <textarea
-          value={localChatbotResponse}
-          onChange={(e) => setLocalChatbotResponse(e.target.value)}
-          placeholder="Pega aquí la respuesta del chatbot..."
-          className="w-full p-3 border border-gray-300 rounded-md mb-4"
-          rows={5}
-        />
+        <div className="w-full p-3 border border-gray-300 rounded-md mb-4 bg-gray-50 text-gray-800 whitespace-pre-line">
+          {localChatbotResponse}
+        </div>
 
         <label className="block text-gray-700 font-semibold mb-2">🧑‍💼 Tu análisis:</label>
         <textarea
@@ -123,8 +151,24 @@ export default function ComparePage({ chatbotResponse }: ComparePageProps) {
           <h2 className="text-xl font-semibold mb-4 text-gray-800">📊 Resultado de la comparación</h2>
           <p className="mb-2"><strong>Resumen IA:</strong> {result.comparacion_ia}</p>
           <p className="mb-2"><strong>Efectividad:</strong> {result.efectividad}</p>
-          <p className="mb-2"><strong>Impacto:</strong> {result.impacto}</p>
-          <p className="mb-2"><strong>Probabilidad:</strong> {result.probabilidad}</p>
+
+          <div className="mt-6 mb-4">
+            <h3 className="text-lg font-semibold mb-2 text-gray-700">📈 Visualización del Riesgo</h3>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={[
+                { name: 'Impacto', valor: result.impacto },
+                { name: 'Probabilidad', valor: result.probabilidad },
+                { name: 'Riesgo', valor: result.riesgo },
+              ]}>
+                <XAxis dataKey="name" />
+                <YAxis allowDecimals={false} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="valor" fill="#3b82f6" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
           <p><strong>Nivel de Riesgo:</strong> {result.nivel} ({result.riesgo})</p>
         </div>
       )}
