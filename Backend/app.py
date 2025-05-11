@@ -9,6 +9,7 @@ from fpdf import FPDF
 from unidecode import unidecode
 from dotenv import load_dotenv
 import easyocr
+import fitz
 from flask_cors import CORS
 
 # Cargar variables de entorno
@@ -90,7 +91,7 @@ def chat():
                 contents=[{"role": "user", "parts": [f"Eres un experto en certificaciones ISO 9001.\n\n{caso_prompt}"]}],
                 generation_config={
                     "temperature": 0.7,
-                    "max_output_tokens": 600
+                    "max_output_tokens": 800
                 }
             )
             return jsonify({"respuesta": response.text.strip()})
@@ -98,15 +99,86 @@ def chat():
             print(f"❌ Error generando caso de estudio: {str(e)}")
             return jsonify({"error": "No se pudo generar el caso de estudio."}), 500
 
-    # Si no pide un caso real, usa chat
-    mensajes_previos = [
-        "Eres un experto en auditorías de la norma ISO 9001. Analiza el caso de estudio proporcionado y responde únicamente con base en esta norma. Tu respuesta debe incluir los hallazgos clave de forma estructurada y enumerada (por ejemplo: 1. ..., 2. ..., etc.), usando saltos de línea para separar claramente cada punto. No escribas todo en un solo párrafo.",
-        full_prompt
-    ]
-
     try:
         chat = MODEL.start_chat(history=[])
-        prompt = "\n".join(mensajes_previos)
+
+        # 🔹 1. Análisis del caso
+        analisis_prompt = (
+            "Eres un experto en auditorías de la norma ISO 9001.\n\n"
+            "Analiza el siguiente caso de estudio proporcionado y responde únicamente con base en esta norma. "
+            "Incluye los hallazgos clave de forma estructurada y enumerada, citando las cláusulas específicas correspondientes.\n\n"
+            f"{full_prompt}"
+        )
+
+        analisis_response = chat.send_message(
+            analisis_prompt,
+            generation_config={
+                "temperature": 0.7,
+                "max_output_tokens": 2048
+            }
+        )
+
+        # 🔹 2. Procedimiento detallado
+        procedimiento_prompt = (
+            "Ahora, basado en ese análisis, describe detalladamente los pasos que un auditor debe seguir para realizar una auditoría ISO 9001 completa.\n\n"
+            "Incluye las siguientes fases:\n"
+            "- Planificación\n- Revisión documental\n- Preparación de listas de verificación\n"
+            "- Realización de entrevistas y observación\n- Revisión de registros\n- Informe y seguimiento\n\n"
+            "Escribe cada fase con subtítulos y pasos numerados de forma clara y técnica."
+        )
+
+        procedimiento_response = chat.send_message(
+            procedimiento_prompt,
+            generation_config={
+                "temperature": 0.7,
+                "max_output_tokens": 2048
+            }
+        )
+
+        # 🔹 Combinar ambas respuestas
+        respuesta_completa = (
+            "**🔍 Análisis del Caso ISO 9001:**\n\n" +
+            analisis_response.text.strip() +
+            "\n\n---\n\n" +
+            "**🧭 Procedimiento Detallado para la Auditoría:**\n\n" +
+            procedimiento_response.text.strip()
+        )
+
+        return jsonify({"respuesta": respuesta_completa})
+
+    except Exception as e:
+        print(f"❌ Error al procesar la solicitud: {str(e)}")
+        return jsonify({"error": "Error al comunicarse con el modelo."}), 500
+
+    
+
+@app.route("/analizar_pdf", methods=["POST"])
+def analizar_pdf():
+    try:
+        if 'pdf' not in request.files:
+            return jsonify({"error": "No se proporcionó un archivo PDF."}), 400
+        
+        file = request.files['pdf']
+        if not file.filename.endswith('.pdf'):
+            return jsonify({"error": "El archivo debe ser un PDF."}), 400
+
+        # Leer el texto del PDF
+        doc = fitz.open(stream=file.read(), filetype="pdf")
+        texto_pdf = ""
+        for page in doc:
+            texto_pdf += page.get_text()
+
+        if not texto_pdf.strip():
+            return jsonify({"error": "No se pudo extraer texto del PDF."}), 400
+
+        # Enviar a análisis con Gemini
+        prompt = (
+            "Eres un experto en auditorías ISO 9001. Analiza el siguiente caso de estudio extraído de un PDF "
+            "y entrega los hallazgos estructurados (enumerados), basados en los requisitos de la norma:\n\n"
+            + texto_pdf
+        )
+
+        chat = MODEL.start_chat(history=[])
         response = chat.send_message(
             prompt,
             generation_config={
@@ -114,10 +186,16 @@ def chat():
                 "max_output_tokens": 800
             }
         )
-        return jsonify({"respuesta": response.text.strip()})
+
+        return jsonify({
+            "texto_extraido": texto_pdf.strip(),
+            "respuesta": response.text.strip()
+        })
+    
     except Exception as e:
-        print(f"❌ Error al procesar la solicitud: {str(e)}")
-        return jsonify({"error": "Error al comunicarse con el modelo."}), 500
+        print(f"❌ Error procesando PDF: {str(e)}")
+        return jsonify({"error": "Error procesando el PDF."}), 500
+
 
 
 @app.route("/compare", methods=["POST"])
