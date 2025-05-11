@@ -1,29 +1,30 @@
-from flask import Flask, request, jsonify, redirect, url_for, session
-import openai
+from flask import Flask, request, jsonify, send_file
+import google.generativeai as genai
 import os
 import re
 import numpy as np
 import io
 from PIL import Image
 from fpdf import FPDF
-from flask import send_file
 from unidecode import unidecode
 from dotenv import load_dotenv
 import easyocr
-import difflib
 from flask_cors import CORS
 
+# Cargar variables de entorno
 load_dotenv()
 
-openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
-if not openrouter_api_key:
-    raise ValueError("❌ ERROR: No se encontró la clave API de OpenRouter. Verifica tu archivo .env.")
+# Configurar la API de Gemini
+gemini_api_key = os.getenv("GEMINI_API_KEY")
+if not gemini_api_key:
+    raise ValueError("❌ ERROR: No se encontró la clave API de Gemini. Verifica tu archivo .env.")
 
-client = openai.OpenAI(
-    api_key=openrouter_api_key,
-    base_url="https://openrouter.ai/api/v1"
-)
+genai.configure(api_key=gemini_api_key)
 
+# Usar modelo Gemini 1.5 Pro más reciente
+MODEL = genai.GenerativeModel("gemini-2.0-flash")
+
+# Inicializar Flask
 app = Flask(__name__)
 CORS(app)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "clave_secreta_segura")
@@ -42,7 +43,6 @@ def limpiar_texto(texto):
         return "No disponible"
     texto = re.sub(r'[^\x00-\x7F]+', '', texto)
     texto = unidecode(texto.strip())
-    # Limita longitud máxima por campo (por si acaso)
     return texto[:3000]
 
 def pide_caso_estudio_real(texto):
@@ -55,8 +55,7 @@ def extraer_texto_desde_imagen(image_file):
         image_array = np.array(image)
         reader = easyocr.Reader(['es'], gpu=False)
         resultados = reader.readtext(image_array, detail=0)
-        extracted_text = "\n".join(resultados).strip()
-        return extracted_text if extracted_text else None
+        return "\n".join(resultados).strip() or None
     except Exception as e:
         print(f"❌ Error con EasyOCR: {str(e)}")
         return None
@@ -65,64 +64,61 @@ def extraer_texto_desde_imagen(image_file):
 def index():
     return jsonify({"message": "API para Chatbot ISO 9001 funcionando correctamente."})
 
-@app.route("/chat", methods=["POST"])
+@app.route("/chat", methods=["POST"]) 
 def chat():
     data = request.get_json()
     user_input = data.get("message", "").strip()
-    image_data = data.get("image_data")  # Base64 si se usa
+    image_data = data.get("image_data")
     extracted_text = ""
 
     if image_data:
-        # Proceso para decodificar si se maneja imagen base64 desde React (opcional)
-        pass
+        pass  # Aquí podrías manejar una imagen en base64
 
     full_prompt = f"{user_input}\n{extracted_text}".strip()
 
     if not full_prompt:
         return jsonify({"error": "Por favor, ingrese un caso de estudio o suba una imagen válida."}), 400
 
+    # Si pide un caso real, usar generate_content
     if pide_caso_estudio_real(full_prompt):
-        caso_prompt = """
-        Proporcióname un caso de estudio real y diferente de una empresa conocida que haya implementado la norma ISO 9001.
-        Cada vez que se te solicite, elige una empresa distinta que opere en un país y sector diferentes. Describe el nombre de la empresa, el sector en el que opera, los problemas que enfrentaba antes de certificarse, los cambios que aplicó para cumplir con la norma y los beneficios obtenidos luego de su certificación.
-        """
+        caso_prompt = (
+            "Proporcióname un caso de estudio real y diferente de una empresa conocida que haya implementado la norma ISO 9001.\n"
+            "Cada vez que se te solicite, elige una empresa distinta que opere en un país y sector diferentes. Describe el nombre de la empresa, el sector en el que opera, los problemas que enfrentaba antes de certificarse, los cambios que aplicó para cumplir con la norma y los beneficios obtenidos luego de su certificación."
+        )
         try:
-            respuesta = client.chat.completions.create(
-                model="openai/gpt-3.5-turbo",
-                temperature=0.7,
-                max_tokens=600,
-                messages=[
-                    {"role": "system", "content": "Eres un experto en certificaciones ISO 9001."},
-                    {"role": "user", "content": caso_prompt}
-                ]
+            response = MODEL.generate_content(
+                contents=[{"role": "user", "parts": [f"Eres un experto en certificaciones ISO 9001.\n\n{caso_prompt}"]}],
+                generation_config={
+                    "temperature": 0.7,
+                    "max_output_tokens": 600
+                }
             )
-            return jsonify({"respuesta": respuesta.choices[0].message.content.strip()})
+            return jsonify({"respuesta": response.text.strip()})
         except Exception as e:
             print(f"❌ Error generando caso de estudio: {str(e)}")
             return jsonify({"error": "No se pudo generar el caso de estudio."}), 500
 
-    mensajes_previos = [{
-        "role": "system",
-        "content": (
-            "Eres un experto en auditorías de la norma ISO 9001. Analiza el caso de estudio proporcionado "
-            "y responde únicamente con base en esta norma. Tu respuesta debe incluir los hallazgos clave de forma estructurada "
-            "y enumerada (por ejemplo: 1. ..., 2. ..., etc.), usando saltos de línea para separar claramente cada punto. "
-            "No escribas todo en un solo párrafo."
-        )
-    }, {"role": "user", "content": full_prompt}]
+    # Si no pide un caso real, usa chat
+    mensajes_previos = [
+        "Eres un experto en auditorías de la norma ISO 9001. Analiza el caso de estudio proporcionado y responde únicamente con base en esta norma. Tu respuesta debe incluir los hallazgos clave de forma estructurada y enumerada (por ejemplo: 1. ..., 2. ..., etc.), usando saltos de línea para separar claramente cada punto. No escribas todo en un solo párrafo.",
+        full_prompt
+    ]
 
     try:
-        respuesta = client.chat.completions.create(
-            model="openai/gpt-3.5-turbo",
-            temperature=0.7,
-            max_tokens=800,
-            messages=mensajes_previos
+        chat = MODEL.start_chat(history=[])
+        prompt = "\n".join(mensajes_previos)
+        response = chat.send_message(
+            prompt,
+            generation_config={
+                "temperature": 0.7,
+                "max_output_tokens": 800
+            }
         )
-        content = respuesta.choices[0].message.content.strip()
-        return jsonify({"respuesta": content})
-    except openai.OpenAIError as e:
+        return jsonify({"respuesta": response.text.strip()})
+    except Exception as e:
         print(f"❌ Error al procesar la solicitud: {str(e)}")
         return jsonify({"error": "Error al comunicarse con el modelo."}), 500
+
 
 @app.route("/compare", methods=["POST"])
 def compare():
@@ -158,38 +154,32 @@ def compare():
     """
 
     try:
-        comparacion = client.chat.completions.create(
-            model="openai/gpt-3.5-turbo",
-            temperature=0.5,
-            max_tokens=300,
-            messages=[
-                {"role": "system", "content": "Eres un auditor experto en ISO 9001."},
-                {"role": "user", "content": prompt_comparacion}
-            ]
-        ).choices[0].message.content
+        # Comparación
+        comparacion = MODEL.generate_content(
+            f"Eres un auditor experto en ISO 9001.\n\n{prompt_comparacion}",
+            generation_config={"temperature": 0.5, "max_output_tokens": 300}
+        ).text.strip()
 
-        efectividad = client.chat.completions.create(
-            model="openai/gpt-3.5-turbo",
-            temperature=0,
-            max_tokens=10,
-            messages=[
-                {"role": "system", "content": "Eres un evaluador que responde solo con un número del 0 al 100."},
-                {"role": "user", "content": prompt_porcentaje}
-            ]
-        ).choices[0].message.content.strip()
+        # Porcentaje de efectividad
+        efectividad = MODEL.generate_content(
+            f"Eres un evaluador que responde solo con un número del 0 al 100.\n\n{prompt_porcentaje}",
+            generation_config={"temperature": 0, "max_output_tokens": 10}
+        ).text.strip()
 
-        riesgo_valores = client.chat.completions.create(
-            model="openai/gpt-3.5-turbo",
-            temperature=0,
-            max_tokens=10,
-            messages=[
-                {"role": "system", "content": "Eres un experto en evaluación de riesgos ISO 9001. Devuelve dos números entre 1 y 5 separados por coma."},
-                {"role": "user", "content": prompt_riesgo}
-            ]
-        ).choices[0].message.content.strip().split(',')
+        # Evaluación de riesgo
+        riesgo_response = MODEL.generate_content(
+            "Eres un experto en evaluación de riesgos ISO 9001. "
+            "Devuelve dos números enteros entre 1 y 5 separados por coma.\n\n"
+            f"{prompt_riesgo}",
+            generation_config={"temperature": 0, "max_output_tokens": 10}
+        ).text.strip()
 
-        impacto = int(riesgo_valores[0])
-        probabilidad = int(riesgo_valores[1])
+        riesgo_valores = riesgo_response.split(',')
+        if len(riesgo_valores) != 2:
+            raise ValueError("Formato de riesgo inválido: se esperaban dos valores separados por coma")
+
+        impacto = int(riesgo_valores[0].strip())
+        probabilidad = int(riesgo_valores[1].strip())
         riesgo = impacto * probabilidad
         nivel = "Alto" if riesgo >= 12 else "Medio" if riesgo >= 6 else "Bajo"
 
@@ -203,47 +193,11 @@ def compare():
         })
 
     except Exception as e:
-        print(f"❌ Error en comparación: {str(e)}")
+        print(f"❌ Error en evaluación comparativa: {str(e)}")
         return jsonify({"error": "Error en evaluación comparativa"}), 500
-    
-@app.route("/generar_caso", methods=["POST"])
-def generar_caso_estudio_filtrado():
-    data = request.get_json()
-    pais = data.get("pais", "un país hispanohablante")
-    sector = data.get("sector", "una industria")
-    tipo_empresa = data.get("tipo_empresa", "una empresa")
-    tamano_empresa = data.get("tamano_empresa", "una organización")
 
-    prompt = f"""
-    Proporcióname un caso de estudio realista sobre una empresa que implementó la norma ISO 9001.
-    Filtros:
-    - País: {pais}
-    - Sector o área de actividad: {sector}
-    - Tipo de empresa: {tipo_empresa}
-    - Tamaño de empresa: {tamano_empresa}
 
-    Describe:
-    1. Nombre ficticio de la empresa.
-    2. Problemas que enfrentaba antes de certificarse.
-    3. Acciones implementadas para cumplir con ISO 9001.
-    4. Beneficios obtenidos tras la certificación.
-    """
 
-    try:
-        respuesta = client.chat.completions.create(
-            model="openai/gpt-3.5-turbo",
-            temperature=0.7,
-            max_tokens=600,
-            messages=[
-                {"role": "system", "content": "Eres un experto en casos de implementación ISO 9001."},
-                {"role": "user", "content": prompt}
-            ]
-        )
-        return jsonify({"caso_estudio": respuesta.choices[0].message.content.strip()})
-    except Exception as e:
-        print("❌ Error generando caso de estudio filtrado:", e)
-        return jsonify({"error": "No se pudo generar el caso de estudio"}), 500
-    
 @app.route("/descargar_pdf", methods=["POST"])
 def descargar_pdf():
     try:
@@ -290,6 +244,41 @@ def evaluar_riesgo():
     except Exception as e:
         print(f"❌ Error en cálculo de riesgo: {str(e)}")
         return jsonify({"error": "Error en cálculo de riesgo"}), 500
+    
+@app.route("/generar_caso", methods=["POST"])
+def generar_caso():
+    data = request.get_json()
+    pais = data.get("pais", "Ecuador")
+    sector = data.get("sector", "tecnología")
+    tipo_empresa = data.get("tipo_empresa", "privada")
+    tamano_empresa = data.get("tamano_empresa", "mediana")
+
+    prompt = f"""
+    Proporcióname un caso de estudio realista sobre una empresa que implementó la norma ISO 9001.
+    Filtros:
+    - País: {pais}
+    - Sector o área de actividad: {sector}
+    - Tipo de empresa: {tipo_empresa}
+    - Tamaño de empresa: {tamano_empresa}
+
+    Describe:
+    1. Nombre ficticio de la empresa.
+    2. Problemas que enfrentaba antes de certificarse.
+    3. Acciones implementadas para cumplir con ISO 9001.
+    4. Beneficios obtenidos tras la certificación.
+    """
+
+    try:
+        chat = MODEL.start_chat(history=[])
+        response = chat.send_message(
+            "Eres un experto en ISO 9001.\n" + prompt,
+            generation_config={"temperature": 0.7, "max_output_tokens": 600}
+        )
+        return jsonify({"caso_estudio": response.text.strip()})
+    except Exception as e:
+        print(f"❌ Error generando caso filtrado: {str(e)}")
+        return jsonify({"error": "No se pudo generar el caso de estudio."}), 500
+
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0")
