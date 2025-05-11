@@ -13,13 +13,16 @@ import fitz
 from flask_cors import CORS
 
 def markdown_to_html(text):
-    # Negrita: **texto** => <strong>texto</strong>
+    # ❗ Eliminar cualquier etiqueta HTML residual que se haya colado del modelo
+    text = re.sub(r'<[^>]+>', '', text)
+
+    # Convertir encabezados markdown ### a <h3>
+    text = re.sub(r'^### (.*?)$', r'<h3>\1</h3>', text, flags=re.MULTILINE)
+
+    # Convertir negritas markdown **texto** a <strong>
     text = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', text)
 
-    # Títulos o encabezados opcionales
-    text = re.sub(r'^## (.*?)$', r'<h3>\1</h3>', text, flags=re.MULTILINE)
-
-    # Listas con viñetas: * elemento => <ul><li>elemento</li></ul>
+    # Procesar listas
     lines = text.split('\n')
     html_lines = []
     in_list = False
@@ -34,14 +37,15 @@ def markdown_to_html(text):
             if in_list:
                 html_lines.append('</ul>')
                 in_list = False
-            html_lines.append(line)
+            if line.strip():
+                html_lines.append(f"<p>{line.strip()}</p>")
+            else:
+                html_lines.append("<br>")
 
     if in_list:
         html_lines.append('</ul>')
 
-    # Unir con saltos de línea HTML
-    return '<br>'.join(html_lines)
-
+    return '\n'.join(html_lines)
 
 
 # Cargar variables de entorno
@@ -258,33 +262,31 @@ def compare():
     prompt_comparacion = f"""
     Eres un auditor experto en la norma ISO 9001.
 
-    Compara de forma profesional y crítica las siguientes dos respuestas sobre un mismo caso de auditoría: la del chatbot y la del usuario. Estructura tu análisis con títulos claros y separados, usando markdown.
+    Compara profesionalmente las siguientes dos respuestas sobre un mismo caso de auditoría: la del chatbot y la del usuario.
 
-    Escribe con formato **markdown**, siguiendo esta estructura:
+    Sigue esta estructura estricta SOLO en formato Markdown PURO. No uses etiquetas HTML como <p>, <br>, <strong>, <h1>, <h3>, etc. Usa exclusivamente encabezados markdown (###) y listas con asterisco (*). NO uses HTML.
 
-    **🟦 Diferencias:**  
-    - Explica qué aspectos menciona el chatbot que el usuario omite.  
-    - ¿Faltan evidencias? ¿No hay recomendaciones? ¿La respuesta es genérica?
+    ### 🟦 Diferencias:
+    * Explica qué aspectos menciona el chatbot que el usuario omite.
+    * ¿Faltan evidencias? ¿No hay recomendaciones? ¿La respuesta es genérica?
 
-    **🟩 Coincidencias:**  
-    - ¿Qué puntos están correctamente alineados?  
-    - ¿El usuario replica bien algún razonamiento del chatbot?
+    ### 🟩 Coincidencias:
+    * ¿Qué puntos están correctamente alineados?
+    * ¿El usuario replica bien algún razonamiento del chatbot?
 
-    **🟥 Retroalimentación crítica:**  
-    - Evalúa si el análisis del usuario es deficiente, incompleto o superficial.  
-    - Sé directo y profesional, como si corrigieras una auditoría real.
+    ### 🟥 Retroalimentación crítica:
+    * Evalúa si el análisis del usuario es deficiente, incompleto o superficial.
+    * Sé directo y profesional, como si corrigieras una auditoría real.
 
-    **📌 Conclusión final:**  
+    ### 📌 Conclusión final:
     Resume en pocas líneas la calidad del análisis del usuario comparado con el del chatbot.
 
-    📘 **Respuesta del chatbot:**  
+    📘 Respuesta del chatbot:
     {chatbot_response}
 
-    🧑‍💼 **Análisis del usuario:**  
+    🧑‍💼 Análisis del usuario:
     {user_analysis}
     """
-
-
 
     prompt_porcentaje = f"""
     Eres un evaluador experto en auditorías ISO 9001.
@@ -314,7 +316,6 @@ def compare():
     {user_analysis}
     """
 
-
     prompt_riesgo = f"""
     Evalúa el análisis del usuario comparado con la respuesta del chatbot ISO 9001.
     Devuelve solo dos valores enteros entre 1 y 5 separados por coma: impacto,probabilidad.
@@ -325,23 +326,18 @@ def compare():
     """
 
     try:
-        # Comparación
         comparacion = MODEL.generate_content(
             f"Eres un auditor experto en ISO 9001.\n\n{prompt_comparacion}",
             generation_config={"temperature": 0.5, "max_output_tokens": 300}
         ).text.strip()
 
-        # Porcentaje de efectividad
         efectividad = MODEL.generate_content(
             f"Eres un evaluador que responde solo con un número del 0 al 100.\n\n{prompt_porcentaje}",
             generation_config={"temperature": 0, "max_output_tokens": 10}
         ).text.strip()
 
-        # Evaluación de riesgo
         riesgo_response = MODEL.generate_content(
-            "Eres un experto en evaluación de riesgos ISO 9001. "
-            "Devuelve dos números enteros entre 1 y 5 separados por coma.\n\n"
-            f"{prompt_riesgo}",
+            "Eres un experto en evaluación de riesgos ISO 9001. Devuelve dos números enteros entre 1 y 5 separados por coma.\n\n" + prompt_riesgo,
             generation_config={"temperature": 0, "max_output_tokens": 10}
         ).text.strip()
 
@@ -354,18 +350,49 @@ def compare():
         riesgo = impacto * probabilidad
         nivel = "Alto" if riesgo >= 12 else "Medio" if riesgo >= 6 else "Bajo"
 
+        prompt_explicacion_efectividad = f"""
+        Eres un auditor experto en ISO 9001. Acabas de calificar con {efectividad} la efectividad del análisis del usuario comparado con el del chatbot.
+
+        Escribe una explicación clara y profesional del porqué se asignó ese porcentaje. No repitas literalmente la comparación. Enfócate en hacer que el usuario comprenda el valor del puntaje recibido.
+        """
+
+        explicacion_efectividad = MODEL.generate_content(
+            prompt_explicacion_efectividad,
+            generation_config={"temperature": 0.5, "max_output_tokens": 800}
+        ).text.strip()
+
+        prompt_explicacion_riesgo = f"""
+        Eres un experto en gestión de riesgos según ISO 9001.
+
+        Acabas de calcular un nivel de riesgo basado en:
+        - Impacto: {impacto}
+        - Probabilidad: {probabilidad}
+        - Riesgo total: {riesgo}
+        - Nivel: {nivel}
+
+        Genera una explicación en lenguaje claro y profesional sobre lo que significa ese nivel de riesgo en el contexto de auditoría.
+        """
+
+        explicacion_riesgo = MODEL.generate_content(
+            prompt_explicacion_riesgo,
+            generation_config={"temperature": 0.5, "max_output_tokens": 800}
+        ).text.strip()
+
         return jsonify({
-            "comparacion_ia": comparacion,
+            "comparacion_ia": markdown_to_html(comparacion),
             "efectividad": efectividad,
             "impacto": impacto,
             "probabilidad": probabilidad,
             "riesgo": riesgo,
-            "nivel": nivel
+            "nivel": nivel,
+            "explicacion_efectividad": explicacion_efectividad,
+            "explicacion_riesgo": explicacion_riesgo
         })
 
     except Exception as e:
         print(f"❌ Error en evaluación comparativa: {str(e)}")
         return jsonify({"error": "Error en evaluación comparativa"}), 500
+
 
 
 

@@ -38,13 +38,15 @@ export default function ComparePage({
   const [localChatbotResponse, setLocalChatbotResponse] = useState(cleanChatbotResponse);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<null | {
-    comparacion_ia: string;
-    efectividad: string;
-    impacto: number;
-    probabilidad: number;
-    riesgo: number;
-    nivel: string;
-  }>(null);
+  comparacion_ia: string;
+  efectividad: string;
+  impacto: number;
+  probabilidad: number;
+  riesgo: number;
+  nivel: string;
+  explicacion_efectividad?: string;
+  explicacion_riesgo?: string;
+}>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -154,27 +156,74 @@ export default function ComparePage({
       {result && (
         <div className="bg-white rounded-lg shadow-md p-6 transition-all duration-300">
           <h2 className="text-xl font-semibold mb-4 text-gray-800">📊 Resultado de la comparación</h2>
-          <p className="mb-2"><strong>Resumen IA:</strong> {result.comparacion_ia}</p>
+          <div
+              className="mb-4 text-gray-800 bg-gray-50 border border-gray-200 rounded-md p-4"
+              dangerouslySetInnerHTML={{ __html: result.comparacion_ia }}
+            />
+
           <p className="mb-2"><strong>Efectividad:</strong> {result.efectividad}</p>
 
           <div className="mt-6 mb-4">
-            <h3 className="text-lg font-semibold mb-2 text-gray-700">📈 Visualización del Riesgo</h3>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={[
-                { name: 'Impacto', valor: result.impacto },
-                { name: 'Probabilidad', valor: result.probabilidad },
-                { name: 'Riesgo', valor: result.riesgo },
-              ]}>
-                <XAxis dataKey="name" />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="valor" fill="#3b82f6" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <h3 className="text-lg font-semibold mb-2 text-gray-700">📈 Visualización del Riesgo</h3>
+
+          {/* Tabla de valores antes de la gráfica */}
+          <table className="table-auto border-collapse w-full text-sm text-left text-gray-700 mb-4">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="border px-4 py-2">Indicador</th>
+                <th className="border px-4 py-2">Valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="border px-4 py-2">Impacto</td>
+                <td className="border px-4 py-2">{result.impacto}</td>
+              </tr>
+              <tr>
+                <td className="border px-4 py-2">Probabilidad</td>
+                <td className="border px-4 py-2">{result.probabilidad}</td>
+              </tr>
+              <tr>
+                <td className="border px-4 py-2">Riesgo</td>
+                <td className="border px-4 py-2">{result.riesgo}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          {/* Gráfica de barras */}
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={[
+              { name: 'Impacto', valor: result.impacto },
+              { name: 'Probabilidad', valor: result.probabilidad },
+              { name: 'Riesgo', valor: result.riesgo },
+            ]}>
+              <XAxis dataKey="name" />
+              <YAxis allowDecimals={false} />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="valor" fill="#3b82f6" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
 
           <p><strong>Nivel de Riesgo:</strong> {result.nivel} ({result.riesgo})</p>
+          {/* Explicación de la Efectividad */}
+          {result.explicacion_efectividad && (
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded text-gray-800">
+              <h3 className="font-semibold mb-2">📝 Explicación de la Efectividad</h3>
+              <p>{result.explicacion_efectividad}</p>
+            </div>
+          )}
+
+          {/* Explicación del Riesgo */}
+          {result.explicacion_riesgo && (
+            <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded text-gray-800">
+              <h3 className="font-semibold mb-2">📉 Explicación del Nivel de Riesgo</h3>
+              <p>{result.explicacion_riesgo}</p>
+            </div>
+          )}
+
         </div>
       )}
     </div>
