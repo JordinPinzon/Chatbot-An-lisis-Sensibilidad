@@ -211,13 +211,21 @@ export default function ChatPage({ setChatbotResponse, historial, setHistorial }
       {casoEstudio && (
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <h2 className="text-xl font-semibold mb-2 text-gray-800">📘 Caso de Estudio:</h2>
-          <pre className="p-4 bg-blue-50 border border-blue-200 rounded-md whitespace-pre-line text-gray-700">{casoEstudio}</pre>
+        <div
+          className="p-4 bg-blue-50 border border-blue-200 rounded-md text-gray-700"
+          dangerouslySetInnerHTML={{ __html: casoEstudio }}
+        />
         </div>
       )}
       <div className="bg-white rounded-lg shadow-md p-6">
         <h2 className="text-xl font-semibold mb-2 text-gray-800">🧠 Respuesta (Análisis IA):</h2>
-        <pre className="p-4 bg-gray-100 border border-gray-300 rounded-md whitespace-pre-line text-gray-700">{response}</pre>
+      <div
+  className="p-4 bg-gray-100 border border-gray-300 rounded-md whitespace-pre-line text-gray-700"
+  style={{ overflowY: 'visible', maxHeight: 'none' }}
+  dangerouslySetInnerHTML={{ __html: response }}
+      />
       </div>
     </div>
   );
 }
+

@@ -12,6 +12,38 @@ import easyocr
 import fitz
 from flask_cors import CORS
 
+def markdown_to_html(text):
+    # Negrita: **texto** => <strong>texto</strong>
+    text = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', text)
+
+    # Títulos o encabezados opcionales
+    text = re.sub(r'^## (.*?)$', r'<h3>\1</h3>', text, flags=re.MULTILINE)
+
+    # Listas con viñetas: * elemento => <ul><li>elemento</li></ul>
+    lines = text.split('\n')
+    html_lines = []
+    in_list = False
+
+    for line in lines:
+        if line.strip().startswith('*'):
+            if not in_list:
+                html_lines.append('<ul>')
+                in_list = True
+            html_lines.append(f"<li>{line.strip()[1:].strip()}</li>")
+        else:
+            if in_list:
+                html_lines.append('</ul>')
+                in_list = False
+            html_lines.append(line)
+
+    if in_list:
+        html_lines.append('</ul>')
+
+    # Unir con saltos de línea HTML
+    return '<br>'.join(html_lines)
+
+
+
 # Cargar variables de entorno
 load_dotenv()
 
@@ -80,7 +112,7 @@ def chat():
     if not full_prompt:
         return jsonify({"error": "Por favor, ingrese un caso de estudio o suba una imagen válida."}), 400
 
-    # Si pide un caso real, usar generate_content
+    # Si pide un caso real
     if pide_caso_estudio_real(full_prompt):
         caso_prompt = (
             "Proporcióname un caso de estudio real y diferente de una empresa conocida que haya implementado la norma ISO 9001.\n"
@@ -102,12 +134,20 @@ def chat():
     try:
         chat = MODEL.start_chat(history=[])
 
-        # 🔹 1. Análisis del caso
+        # 🔹 Solicita la respuesta organizada en secciones separadas
         analisis_prompt = (
-            "Eres un experto en auditorías de la norma ISO 9001.\n\n"
-            "Analiza el siguiente caso de estudio proporcionado y responde únicamente con base en esta norma. "
-            "Incluye los hallazgos clave de forma estructurada y enumerada, citando las cláusulas específicas correspondientes.\n\n"
-            f"{full_prompt}"
+            "Eres un auditor experto en la norma ISO 9001.\n\n"
+            "Analiza el siguiente caso de estudio de forma estructurada. No respondas de forma general. Todo debe estar enfocado exclusivamente en el caso proporcionado.\n"
+            "Estructura la respuesta en las siguientes secciones claramente separadas:\n\n"
+            "<strong>🧭 Procedimiento Aplicado:</strong>\n"
+            "Describe los procedimientos reales auditados según el caso.\n\n"
+            "<strong>🔬 Evidencia Recolectada:</strong>\n"
+            "Describe qué evidencias se observaron o recopilaron (registros, entrevistas, documentos específicos del caso).\n\n"
+            "<strong>🧠 Hallazgos Identificados:</strong>\n"
+            "Indica no conformidades, fortalezas o debilidades encontradas, citando las cláusulas ISO 9001 aplicables.\n\n"
+            "<strong>🚀 Mejoras o Recomendaciones:</strong>\n"
+            "Redacta acciones específicas de mejora basadas solo en este caso.\n\n"
+            f"Caso de estudio:\n{full_prompt}"
         )
 
         analisis_response = chat.send_message(
@@ -118,13 +158,13 @@ def chat():
             }
         )
 
-        # 🔹 2. Procedimiento detallado
+        # 🔹 Procedimiento general basado en el mismo caso
         procedimiento_prompt = (
-            "Ahora, basado en ese análisis, describe detalladamente los pasos que un auditor debe seguir para realizar una auditoría ISO 9001 completa.\n\n"
-            "Incluye las siguientes fases:\n"
-            "- Planificación\n- Revisión documental\n- Preparación de listas de verificación\n"
-            "- Realización de entrevistas y observación\n- Revisión de registros\n- Informe y seguimiento\n\n"
-            "Escribe cada fase con subtítulos y pasos numerados de forma clara y técnica."
+            "En base al caso de estudio anterior, redacta los pasos detallados que un auditor ISO 9001 seguiría para realizar una auditoría específica a este caso. "
+            "Incluye las fases reales aplicables:\n"
+            "- Planificación\n- Revisión documental\n- Listas de verificación\n- Entrevistas y observaciones\n"
+            "- Revisión de registros\n- Elaboración del informe y acciones de seguimiento.\n"
+            "Evita explicaciones generales. Todo debe enfocarse en el contexto del caso."
         )
 
         procedimiento_response = chat.send_message(
@@ -135,20 +175,22 @@ def chat():
             }
         )
 
-        # 🔹 Combinar ambas respuestas
+        # 🔹 Combinar respuestas con secciones separadas
         respuesta_completa = (
-            "**🔍 Análisis del Caso ISO 9001:**\n\n" +
-            analisis_response.text.strip() +
-            "\n\n---\n\n" +
-            "**🧭 Procedimiento Detallado para la Auditoría:**\n\n" +
-            procedimiento_response.text.strip()
+            "<strong>🧭 Procedimiento General de Auditoría aplicado al caso:</strong><br><br>" +
+            procedimiento_response.text.strip() +
+            "<br><br><hr><br>" +
+            analisis_response.text.strip()
         )
 
-        return jsonify({"respuesta": respuesta_completa})
+        respuesta_html = markdown_to_html(respuesta_completa)
+        return jsonify({"respuesta": respuesta_html})
 
     except Exception as e:
         print(f"❌ Error al procesar la solicitud: {str(e)}")
         return jsonify({"error": "Error al comunicarse con el modelo."}), 500
+
+
 
     
 
@@ -332,27 +374,36 @@ def generar_caso():
     tamano_empresa = data.get("tamano_empresa", "mediana")
 
     prompt = f"""
-    Proporcióname un caso de estudio realista sobre una empresa que implementó la norma ISO 9001.
-    Filtros:
+    Eres un experto en auditorías ISO 9001 y en generación de casos de estudio realistas para capacitación empresarial.
+
+    Genera un caso de estudio detallado y profesional basado en los siguientes filtros:
+
     - País: {pais}
     - Sector o área de actividad: {sector}
     - Tipo de empresa: {tipo_empresa}
     - Tamaño de empresa: {tamano_empresa}
 
-    Describe:
-    1. Nombre ficticio de la empresa.
-    2. Problemas que enfrentaba antes de certificarse.
-    3. Acciones implementadas para cumplir con ISO 9001.
-    4. Beneficios obtenidos tras la certificación.
-    """
+    Incluye estas secciones en tu respuesta:
 
+    1. Nombre de la empresa ficticia (solo escribe el nombre, sin encabezado).
+    2. **Contexto breve de la organización** según los filtros.
+    3. **Problema principal detectado antes de implementar ISO 9001**. Este problema debe ser puntual, realista y crítico para su sector (por ejemplo: retrasos en producción, errores en facturación, baja satisfacción del cliente, falta de trazabilidad en procesos, errores humanos en inventario, incumplimiento normativo, fallos de calidad, incidentes de seguridad, etc.).
+    4. **Datos numéricos del impacto**:
+    - Número de clientes afectados o quejas registradas.
+    - Tiempo promedio de demora o respuesta.
+    - Pérdidas económicas estimadas o costos operativos.
+    - Tasa de error o incumplimiento.
+
+    No incluyas acciones implementadas ni resultados obtenidos después de la certificación. No pongas las secciones 5 ni 6. Redacta el caso como un informe profesional, con estilo formal, en párrafos separados y con enfoque técnico. No uses viñetas ni numeraciones. Asegúrate de que todo esté vinculado al contexto específico de la empresa según los filtros proporcionados.
+    """
     try:
         chat = MODEL.start_chat(history=[])
         response = chat.send_message(
             "Eres un experto en ISO 9001.\n" + prompt,
-            generation_config={"temperature": 0.7, "max_output_tokens": 600}
+            generation_config={"temperature": 0.7, "max_output_tokens": 2000}
         )
-        return jsonify({"caso_estudio": response.text.strip()})
+        html_formatted = markdown_to_html(response.text.strip())
+        return jsonify({"caso_estudio": html_formatted})
     except Exception as e:
         print(f"❌ Error generando caso filtrado: {str(e)}")
         return jsonify({"error": "No se pudo generar el caso de estudio."}), 500
