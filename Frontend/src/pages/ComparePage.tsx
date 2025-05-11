@@ -12,6 +12,7 @@ import axios from 'axios';
 
 interface ComparePageProps {
   chatbotResponse: string;
+  cleanChatbotResponse: string;
   historial: {
     casoEstudio: string;
     respuestaIA: string;
@@ -28,11 +29,13 @@ interface ComparePageProps {
 
 export default function ComparePage({
   chatbotResponse,
+  cleanChatbotResponse,  
   historial,
   setHistorial,
 }: ComparePageProps) {
+
   const [userAnalysis, setUserAnalysis] = useState(historial.respuestaUsuario || '');
-  const [localChatbotResponse, setLocalChatbotResponse] = useState(chatbotResponse);
+  const [localChatbotResponse, setLocalChatbotResponse] = useState(cleanChatbotResponse);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<null | {
     comparacion_ia: string;
@@ -45,8 +48,8 @@ export default function ComparePage({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setLocalChatbotResponse(chatbotResponse);
-  }, [chatbotResponse]);
+  setLocalChatbotResponse(cleanChatbotResponse);
+  }, [cleanChatbotResponse]);
 
   const handleCompare = async () => {
     setLoading(true);
@@ -107,9 +110,11 @@ export default function ComparePage({
 
       <div className="bg-white rounded-lg shadow-md p-6 mb-6 transition-all duration-300">
         <label className="block text-gray-700 font-semibold mb-2">📘 Respuesta del Chatbot:</label>
-        <div className="w-full p-3 border border-gray-300 rounded-md mb-4 bg-gray-50 text-gray-800 whitespace-pre-line">
-          {localChatbotResponse}
-        </div>
+        <div
+            className="w-full p-3 border border-gray-300 rounded-md mb-4 bg-gray-50 text-gray-800"
+            dangerouslySetInnerHTML={{ __html: chatbotResponse }}
+          />
+
 
         <label className="block text-gray-700 font-semibold mb-2">🧑‍💼 Tu análisis:</label>
         <textarea

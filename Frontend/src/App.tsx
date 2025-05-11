@@ -7,6 +7,7 @@ import axios from 'axios';
 export default function App() {
   const [vista, setVista] = useState<'inicio' | 'comparar'>('inicio');
   const [chatbotResponse, setChatbotResponse] = useState('');
+  const [cleanResponse, setCleanResponse] = useState(''); // ✅ Nuevo estado para texto limpio
 
   const [historial, setHistorial] = useState({
     casoEstudio: '',
@@ -41,6 +42,7 @@ export default function App() {
         respuestaUsuario: '',
       });
       setChatbotResponse('');
+      setCleanResponse(''); // 🧹 Limpiar respuesta limpia también
     } catch (err) {
       alert('❌ Error al descargar el PDF.');
       console.error(err);
@@ -97,6 +99,7 @@ export default function App() {
         {vista === 'inicio' && (
           <ChatPage
             setChatbotResponse={setChatbotResponse}
+            setCleanResponse={setCleanResponse} // ✅ Se pasa a ChatPage
             historial={historial}
             setHistorial={setHistorial}
           />
@@ -104,6 +107,7 @@ export default function App() {
         {vista === 'comparar' && (
           <ComparePage
             chatbotResponse={chatbotResponse}
+            cleanChatbotResponse={cleanResponse} // ✅ Se pasa a ComparePage
             historial={historial}
             setHistorial={setHistorial}
           />

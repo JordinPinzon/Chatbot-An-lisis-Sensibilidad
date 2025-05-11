@@ -204,7 +204,6 @@ def analizar_pdf():
         if not file.filename.endswith('.pdf'):
             return jsonify({"error": "El archivo debe ser un PDF."}), 400
 
-        # Leer el texto del PDF
         doc = fitz.open(stream=file.read(), filetype="pdf")
         texto_pdf = ""
         for page in doc:
@@ -213,27 +212,37 @@ def analizar_pdf():
         if not texto_pdf.strip():
             return jsonify({"error": "No se pudo extraer texto del PDF."}), 400
 
-        # Enviar a análisis con Gemini
-        prompt = (
-            "Eres un experto en auditorías ISO 9001. Analiza el siguiente caso de estudio extraído de un PDF "
-            "y entrega los hallazgos estructurados (enumerados), basados en los requisitos de la norma:\n\n"
-            + texto_pdf
+        chat = MODEL.start_chat(history=[])
+
+        analisis_prompt = (
+            "Eres un auditor experto en la norma ISO 9001.\n\n"
+            "Analiza el siguiente caso de estudio de forma estructurada. No respondas de forma general. Todo debe estar enfocado exclusivamente en el caso proporcionado.\n"
+            "Estructura la respuesta en las siguientes secciones claramente separadas:\n\n"
+            "<strong>🧭 Procedimiento Aplicado:</strong>\n"
+            "Describe los procedimientos reales auditados según el caso.\n\n"
+            "<strong>🔬 Evidencia Recolectada:</strong>\n"
+            "Describe qué evidencias se observaron o recopilaron (registros, entrevistas, documentos específicos del caso).\n\n"
+            "<strong>🧠 Hallazgos Identificados:</strong>\n"
+            "Indica no conformidades, fortalezas o debilidades encontradas, citando las cláusulas ISO 9001 aplicables.\n\n"
+            "<strong>🚀 Mejoras o Recomendaciones:</strong>\n"
+            "Redacta acciones específicas de mejora basadas solo en este caso.\n\n"
+            f"Caso de estudio:\n{texto_pdf.strip()}"
         )
 
-        chat = MODEL.start_chat(history=[])
-        response = chat.send_message(
-            prompt,
+        analisis_response = chat.send_message(
+            analisis_prompt,
             generation_config={
                 "temperature": 0.7,
-                "max_output_tokens": 800
+                "max_output_tokens": 2048
             }
         )
 
+        respuesta_html = markdown_to_html(analisis_response.text.strip())
         return jsonify({
             "texto_extraido": texto_pdf.strip(),
-            "respuesta": response.text.strip()
+            "respuesta": respuesta_html
         })
-    
+
     except Exception as e:
         print(f"❌ Error procesando PDF: {str(e)}")
         return jsonify({"error": "Error procesando el PDF."}), 500
@@ -247,22 +256,64 @@ def compare():
     user_analysis = data.get("user_analysis", "")
 
     prompt_comparacion = f"""
-    Actúa como un auditor experto en la norma ISO 9001.
-    📘 Análisis del chatbot:
+    Eres un auditor experto en la norma ISO 9001.
+
+    Compara de forma profesional y crítica las siguientes dos respuestas sobre un mismo caso de auditoría: la del chatbot y la del usuario. Estructura tu análisis con títulos claros y separados, usando markdown.
+
+    Escribe con formato **markdown**, siguiendo esta estructura:
+
+    **🟦 Diferencias:**  
+    - Explica qué aspectos menciona el chatbot que el usuario omite.  
+    - ¿Faltan evidencias? ¿No hay recomendaciones? ¿La respuesta es genérica?
+
+    **🟩 Coincidencias:**  
+    - ¿Qué puntos están correctamente alineados?  
+    - ¿El usuario replica bien algún razonamiento del chatbot?
+
+    **🟥 Retroalimentación crítica:**  
+    - Evalúa si el análisis del usuario es deficiente, incompleto o superficial.  
+    - Sé directo y profesional, como si corrigieras una auditoría real.
+
+    **📌 Conclusión final:**  
+    Resume en pocas líneas la calidad del análisis del usuario comparado con el del chatbot.
+
+    📘 **Respuesta del chatbot:**  
     {chatbot_response}
-    🧑‍💼 Análisis del usuario:
+
+    🧑‍💼 **Análisis del usuario:**  
     {user_analysis}
-    Compara ambos. Evalúa si están alineados, si uno es más detallado o completo, si hay contradicciones, y redacta un párrafo resumen.
     """
 
+
+
     prompt_porcentaje = f"""
-    Eres un evaluador experto en auditorías ISO 9001. Compara la respuesta del usuario con la del chatbot.
-    Evalúa cuán alineado está el análisis del usuario. Devuelve solo un porcentaje entero del 0 al 100 seguido del símbolo %.
-    Respuesta del chatbot:
+    Eres un evaluador experto en auditorías ISO 9001.
+
+    Compara la respuesta del usuario con la del chatbot y asigna un **porcentaje de efectividad** del 0% al 100%, según qué tan alineado y completo es el análisis del usuario respecto a la norma ISO 9001 y al análisis del chatbot.
+
+    Evalúa considerando estos criterios:
+
+    1. ¿El usuario responde al caso concreto o da una respuesta genérica?
+    2. ¿Incluye evidencias, hallazgos o recomendaciones concretas según la norma?
+    3. ¿Cita o aplica cláusulas reales de la ISO 9001?
+    4. ¿Demuestra comprensión técnica o es superficial?
+    5. ¿Su análisis coincide al menos parcialmente con el del chatbot?
+
+    Puntúa de la siguiente manera:
+
+    - 0–30%: La respuesta es irrelevante, sin relación con el caso, sin fundamentos o completamente incorrecta.
+    - 31–70%: La respuesta tiene partes correctas pero es incompleta, ambigua o poco técnica.
+    - 71–100%: La respuesta está bien fundamentada, es coherente con el caso, y demuestra comprensión profunda de la norma ISO 9001.
+
+    Devuelve **solo** un número entero seguido del símbolo %, sin palabras adicionales.
+
+    📘 Respuesta del chatbot:
     {chatbot_response}
+
     🧑‍💼 Análisis del usuario:
     {user_analysis}
     """
+
 
     prompt_riesgo = f"""
     Evalúa el análisis del usuario comparado con la respuesta del chatbot ISO 9001.

@@ -3,6 +3,7 @@ import axios from 'axios';
 
 interface ChatPageProps {
   setChatbotResponse: (text: string) => void;
+  setCleanResponse: (text: string) => void; // 👈 NUEVO
   historial: {
     casoEstudio: string;
     respuestaIA: string;
@@ -43,12 +44,18 @@ function SelectField({
   );
 }
 
-export default function ChatPage({ setChatbotResponse, historial, setHistorial }: ChatPageProps) {
-  const [message, setMessage] = useState('');
-  const [response, setResponse] = useState('');
+function stripHtml(html: string): string {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return doc.body.textContent || '';
+}
+
+export default function ChatPage({ setChatbotResponse, setCleanResponse, historial, setHistorial }: ChatPageProps) {
   const [casoEstudio, setCasoEstudio] = useState(historial.casoEstudio || '');
   const [loading, setLoading] = useState(false);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [response, setResponse] = useState('');
+  const [message, setMessage] = useState('');
+
 
   const paises = ['Ecuador', 'México', 'Colombia', 'Argentina', 'España'];
   const sectores = ['Salud', 'Educación', 'Automotriz', 'Alimentos', 'Tecnología'];
@@ -67,6 +74,7 @@ export default function ChatPage({ setChatbotResponse, historial, setHistorial }
       const reply = res.data.respuesta || res.data.error;
       setResponse(reply);
       setChatbotResponse(reply);
+      setCleanResponse(stripHtml(reply));
       setHistorial(prev => ({ ...prev, respuestaIA: reply }));
       setCasoEstudio('');
     } catch {
@@ -101,6 +109,7 @@ export default function ChatPage({ setChatbotResponse, historial, setHistorial }
 
       setResponse(analisisTexto);
       setChatbotResponse(analisisTexto);
+      setCleanResponse(stripHtml(analisisTexto));
       setHistorial(prev => ({
         ...prev,
         casoEstudio: casoTexto,
@@ -132,7 +141,7 @@ export default function ChatPage({ setChatbotResponse, historial, setHistorial }
       setCasoEstudio(texto_extraido);
       setResponse(respuesta);
       setChatbotResponse(respuesta);
-
+      setCleanResponse(stripHtml(respuesta));
       setHistorial(prev => ({
         ...prev,
         casoEstudio: texto_extraido,
