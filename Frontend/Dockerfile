@@ -1,24 +1,25 @@
 FROM node:18
 
-# Establece el directorio de trabajo dentro del contenedor
+# Establecer directorio de trabajo
 WORKDIR /app
 
-# Copia los archivos de dependencias e instala
+# Copiar archivos de dependencias
 COPY package*.json ./
+
+# Instalar dependencias
 RUN npm install --legacy-peer-deps
 
-# Copia todo el resto del proyecto
+# Copiar todo el código fuente
 COPY . .
 
-# Construye el proyecto para producción
+# Construir para producción
 RUN npm run build
 
-# Usa un servidor web ligero para servir los archivos (opcional pero recomendado)
-# Si usas Vite, puedes usar esto:
+# Instalar servidor de archivos estáticos
 RUN npm install -g serve
 
-# Expón el puerto que usa `serve` (por defecto 3000)
+# Exponer puerto usado por `serve`
 EXPOSE 3000
 
-# Comando de inicio: sirve la carpeta de distribución (dist)
-CMD ["serve", "-s", "dist", "-l", "3000"]
+# Iniciar servidor con fallback para react-router
+CMD ["serve", "-s", "build", "-l", "3000", "--single"]

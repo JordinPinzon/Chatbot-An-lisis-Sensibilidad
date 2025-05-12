@@ -1,0 +1,14 @@
+{
+  "files": {
+    "main.css": "./static/css/main.2e9434c5.css",
+    "main.js": "./static/js/main.a5defb2c.js",
+    "static/media/Chatbot.png": "./static/media/Chatbot.8f7b96be7df911a58a43.png",
+    "index.html": "./index.html",
+    "main.2e9434c5.css.map": "./static/css/main.2e9434c5.css.map",
+    "main.a5defb2c.js.map": "./static/js/main.a5defb2c.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.2e9434c5.css",
+    "static/js/main.a5defb2c.js"
+  ]
+}
