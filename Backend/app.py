@@ -11,6 +11,16 @@ from dotenv import load_dotenv
 import easyocr
 import fitz
 from flask_cors import CORS
+from bs4 import BeautifulSoup
+
+def html_a_texto_plano(html):
+    """Convierte contenido HTML a texto plano legible para el PDF"""
+    soup = BeautifulSoup(html, "html.parser")
+    return soup.get_text(separator="\n").strip()
+
+
+def eliminar_emojis(texto):
+    return emoji.replace_emoji(texto, replace='')
 
 def markdown_to_html(text):
     # ❗ Eliminar cualquier etiqueta HTML residual que se haya colado del modelo
@@ -328,7 +338,7 @@ def compare():
     try:
         comparacion = MODEL.generate_content(
             f"Eres un auditor experto en ISO 9001.\n\n{prompt_comparacion}",
-            generation_config={"temperature": 0.5, "max_output_tokens": 300}
+            generation_config={"temperature": 0.5, "max_output_tokens": 1000}
         ).text.strip()
 
         efectividad = MODEL.generate_content(
@@ -401,34 +411,42 @@ def descargar_pdf():
     try:
         data = request.get_json()
 
-        caso = limpiar_texto(data.get("caso_estudio", "No proporcionado"))
-        respuesta_ia = limpiar_texto(data.get("respuesta_ia", "No disponible"))
-        respuesta_usuario = limpiar_texto(data.get("respuesta_usuario", "No disponible"))
-        comparacion = limpiar_texto(data.get("comparacion", "No realizada"))
+        caso = html_a_texto_plano(data.get("caso_estudio", "No proporcionado"))
+        respuesta_ia = html_a_texto_plano(data.get("respuesta_ia", "No disponible"))
+        respuesta_usuario = html_a_texto_plano(data.get("respuesta_usuario", "No disponible"))
+        comparacion = html_a_texto_plano(data.get("comparacion", "No realizada"))
+
+
+        # Eliminar emojis y caracteres especiales no soportados por latin-1
+        def limpiar_texto_pdf(texto):
+            texto = re.sub(r'[^\x00-\xFF]', '', texto)  # Solo latin-1
+            texto = unidecode(texto)  # Transforma acentos y otros
+            return texto.strip()
 
         pdf = FPDF()
         pdf.add_page()
-        pdf.set_font("Helvetica", 'B', size=14)
+        pdf.set_font("Arial", 'B', size=14)
         pdf.cell(0, 10, "Informe de Auditoría ISO 9001", ln=True, align="C")
         pdf.ln(10)
 
-        pdf.set_font("Helvetica", size=12)
-        pdf.multi_cell(0, 10, f"Caso de estudio:\n{caso}\n", align="L")
-        pdf.multi_cell(0, 10, f"Respuesta del Chatbot:\n{respuesta_ia}\n", align="L")
-        pdf.multi_cell(0, 10, f"Análisis del Usuario:\n{respuesta_usuario}\n", align="L")
-        pdf.multi_cell(0, 10, f"Comparación IA:\n{comparacion}\n", align="L")
+        pdf.set_font("Arial", size=12)
+        pdf.multi_cell(0, 10, f"Caso de estudio:\n{limpiar_texto_pdf(caso)}\n", align="L")
+        pdf.multi_cell(0, 10, f"Respuesta del Chatbot:\n{limpiar_texto_pdf(respuesta_ia)}\n", align="L")
+        pdf.multi_cell(0, 10, f"Análisis del Usuario:\n{limpiar_texto_pdf(respuesta_usuario)}\n", align="L")
+        pdf.multi_cell(0, 10, f"Comparación IA:\n{limpiar_texto_pdf(comparacion)}\n", align="L")
 
         buffer = io.BytesIO()
-        pdf_bytes = pdf.output(dest='S').encode('latin1')  # 'S' devuelve como string, .encode a bytes
+        pdf_bytes = pdf.output(dest='S').encode('latin-1')
         buffer.write(pdf_bytes)
         buffer.seek(0)
-
 
         return send_file(buffer, as_attachment=True, download_name="informe_auditoria.pdf", mimetype='application/pdf')
 
     except Exception as e:
         print(f"❌ Error generando PDF: {e}")
         return jsonify({"error": "Hubo un error al generar el PDF."}), 500
+
+
 
 @app.route("/evaluar_riesgo", methods=["POST"])
 def evaluar_riesgo():

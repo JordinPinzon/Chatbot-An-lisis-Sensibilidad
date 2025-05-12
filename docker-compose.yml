@@ -1,9 +1,32 @@
+# docker-compose.yml
+version: '3.9'
+
 services:
-  chatbot_legislacion:
-    build: .
-    container_name: chatbot_legislacion
+  backend:
+    build: ./Backend
+    container_name: chatbot_backend
     ports:
       - "5000:5000"
     env_file:
-      - .env
-    restart: unless-stopped
+      - ./Backend/.env
+    volumes:
+      - ./Backend:/app
+    networks:
+      - app-network
+
+  frontend:
+    build: ./Frontend
+    container_name: chatbot_frontend
+    ports:
+      - "3000:3000"
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./Frontend:/app
+    networks:
+      - app-network
+    depends_on:
+      - backend
+
+networks:
+  app-network:

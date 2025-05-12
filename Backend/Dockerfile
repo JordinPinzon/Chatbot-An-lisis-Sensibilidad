@@ -1,18 +1,18 @@
-# Imagen base
+# Imagen base ligera con Python
 FROM python:3.10-slim
 
-# Establecer directorio de trabajo
+# Establece el directorio de trabajo dentro del contenedor
 WORKDIR /app
 
-# Copiar los archivos necesarios
+# Copia e instala dependencias
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copia todo el resto del código
 COPY . .
 
-# Instalar dependencias
-RUN pip install --upgrade pip && \
-    pip install -r requirements.txt
-
-# Exponer el puerto
+# Expone el puerto 5000 para Flask
 EXPOSE 5000
 
-# Comando para ejecutar la aplicación
+# Comando para ejecutar la aplicación Flask
 CMD ["python", "app.py"]
