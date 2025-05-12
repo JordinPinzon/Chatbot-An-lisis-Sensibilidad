@@ -1,0 +1,22 @@
+# Ignorar variables de entorno
+.env
+**/.env
+
+# Node.js
+node_modules/
+**/node_modules/
+
+# Python
+__pycache__/
+*.pyc
+
+# Entornos virtuales
+venv/
+**/venv/
+
+# IDEs
+.vscode/
+.idea/
+
+# Otros
+*.log
