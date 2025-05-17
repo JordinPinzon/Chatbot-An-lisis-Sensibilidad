@@ -1,13 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from 'recharts';
 import axios from 'axios';
 
 interface ComparePageProps {
@@ -189,21 +180,6 @@ export default function ComparePage({
               </tr>
             </tbody>
           </table>
-
-          {/* Gráfica de barras */}
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={[
-              { name: 'Impacto', valor: result.impacto },
-              { name: 'Probabilidad', valor: result.probabilidad },
-              { name: 'Riesgo', valor: result.riesgo },
-            ]}>
-              <XAxis dataKey="name" />
-              <YAxis allowDecimals={false} />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="valor" fill="#3b82f6" />
-            </BarChart>
-          </ResponsiveContainer>
         </div>
 
 

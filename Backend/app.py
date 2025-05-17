@@ -4,11 +4,9 @@ import os
 import re
 import numpy as np
 import io
-from PIL import Image
 from fpdf import FPDF
 from unidecode import unidecode
 from dotenv import load_dotenv
-import easyocr
 import fitz
 from flask_cors import CORS
 from bs4 import BeautifulSoup
@@ -96,16 +94,6 @@ def pide_caso_estudio_real(texto):
     texto = texto.lower()
     return any(kw in texto for kw in ["dame un caso de estudio", "caso de empresa real", "quiero un caso real", "proporcióname un caso de estudio"])
 
-def extraer_texto_desde_imagen(image_file):
-    try:
-        image = Image.open(image_file).convert("RGB")
-        image_array = np.array(image)
-        reader = easyocr.Reader(['es'], gpu=False)
-        resultados = reader.readtext(image_array, detail=0)
-        return "\n".join(resultados).strip() or None
-    except Exception as e:
-        print(f"❌ Error con EasyOCR: {str(e)}")
-        return None
 
 @app.route("/")
 def index():
