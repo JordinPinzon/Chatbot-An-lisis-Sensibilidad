@@ -1,4 +1,3 @@
-# docker-compose.yml
 version: '3.9'
 
 services:
@@ -9,8 +8,6 @@ services:
       - "5000:5000"
     env_file:
       - ./Backend/.env
-    volumes:
-      - ./Backend:/app
     networks:
       - app-network
 
@@ -21,8 +18,6 @@ services:
       - "3000:3000"
     stdin_open: true
     tty: true
-    volumes:
-      - ./Frontend:/app
     networks:
       - app-network
     depends_on:
