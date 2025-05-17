@@ -1,0 +1,22 @@
+# Evita subir dependencias locales
+node_modules
+
+# ❗ EXCLUYE src/ y public/ para que no se suban al contenedor
+src
+public
+
+# Ignora configuraciones de desarrollo innecesarias
+.git
+.gitignore
+.vscode
+.DS_Store
+Thumbs.db
+*.log
+*.md
+*.map
+tailwind.config.js
+postcss.config.js
+tsconfig.json
+tsconfig.build.json
+vite.config.js
+webpack.config.js
