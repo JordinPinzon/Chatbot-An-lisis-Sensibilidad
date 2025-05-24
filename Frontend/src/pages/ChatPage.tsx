@@ -1,5 +1,7 @@
 import React, { useState, FormEvent } from 'react';
 import axios from 'axios';
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+
 
 interface ChatPageProps {
   setChatbotResponse: (text: string) => void;
@@ -70,7 +72,7 @@ export default function ChatPage({ setChatbotResponse, setCleanResponse, histori
   const handleSend = async () => {
     setLoading(true);
     try {
-      const res = await axios.post('http://localhost:5000/chat', { message });
+      const res = await axios.post(`${BACKEND_URL}/chat`, { message });
       const reply = res.data.respuesta || res.data.error;
       setResponse(reply);
       setChatbotResponse(reply);
@@ -88,7 +90,7 @@ export default function ChatPage({ setChatbotResponse, setCleanResponse, histori
   const handleGenerateCase = async () => {
     setLoading(true);
     try {
-      const casoRes = await axios.post('http://localhost:5000/generar_caso', {
+      const casoRes = await axios.post(`${BACKEND_URL}/generar_caso`, {
         pais, sector,
         tipo_empresa: tipoEmpresa,
         tamano_empresa: tamanoEmpresa
@@ -104,7 +106,7 @@ export default function ChatPage({ setChatbotResponse, setCleanResponse, histori
         return;
       }
 
-      const analisisRes = await axios.post('http://localhost:5000/chat', { message: casoTexto });
+      const analisisRes = await axios.post(`${BACKEND_URL}/chat`, { message: casoTexto });
       const analisisTexto = analisisRes.data.respuesta || analisisRes.data.error;
 
       setResponse(analisisTexto);
@@ -133,7 +135,7 @@ export default function ChatPage({ setChatbotResponse, setCleanResponse, histori
 
     setLoading(true);
     try {
-      const res = await axios.post("http://localhost:5000/analizar_pdf", formData, {
+      const res = await axios.post(`${BACKEND_URL}/analizar_pdf`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 

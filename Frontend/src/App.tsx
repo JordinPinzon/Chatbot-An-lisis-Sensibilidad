@@ -4,6 +4,8 @@ import ChatPage from './pages/ChatPage';
 import ComparePage from './pages/ComparePage';
 import ChatbotIcon from './assets/Chatbot.png';
 import axios from 'axios';
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+
 
 export default function App() {
   const [chatbotResponse, setChatbotResponse] = useState('');
@@ -24,7 +26,7 @@ export default function App() {
         comparacion: 'Generado desde App',
       };
 
-      const res = await axios.post('http://localhost:5000/descargar_pdf', payload, {
+      const res = await axios.post(`${BACKEND_URL}/descargar_pdf`, payload, {
         responseType: 'blob',
       });
 

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+
 
 interface ComparePageProps {
   chatbotResponse: string;
@@ -50,7 +52,7 @@ export default function ComparePage({
     setResult(null);
 
     try {
-      const res = await axios.post('http://localhost:5000/compare', {
+      const res = await axios.post(`${BACKEND_URL}/compare`, {
         chatbot_response: localChatbotResponse,
         user_analysis: userAnalysis,
       });
@@ -78,7 +80,7 @@ export default function ComparePage({
         comparacion: result?.comparacion_ia || 'No disponible',
       };
 
-      const res = await axios.post('http://localhost:5000/descargar_pdf', payload, {
+      const res = await axios.post(`${BACKEND_URL}/descargar_pdf`, payload, {
         responseType: 'blob',
       });
 
